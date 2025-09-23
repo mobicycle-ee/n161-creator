@@ -1,0 +1,19 @@
+name = "n161-creator"
+main = "src/index.ts"
+compatibility_date = "2025-09-23"
+
+[ai]
+binding = "AI"
+
+[[kv_namespaces]]
+binding = "ORDERS"
+id = "orders_namespace_id"
+preview_id = "orders_preview_id"
+
+[[kv_namespaces]]
+binding = "APPEALS"
+id = "appeals_namespace_id"  
+preview_id = "appeals_preview_id"
+
+[env.production]
+name = "n161-creator-production"
