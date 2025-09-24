@@ -5,15 +5,14 @@ compatibility_date = "2025-09-23"
 [ai]
 binding = "AI"
 
-[[kv_namespaces]]
-binding = "ORDERS"
-id = "orders_namespace_id"
-preview_id = "orders_preview_id"
+[[d1_databases]]
+binding = "LEGAL_DB"
+database_name = "legal-applications-db"
+database_id = "4ef47613-2b51-4f83-a841-63abefbc1c19"
 
 [[kv_namespaces]]
 binding = "APPEALS"
-id = "appeals_namespace_id"  
-preview_id = "appeals_preview_id"
+id = "1c6c3a4156494b01a6f509b83dec4a50"
 
 [env.production]
 name = "n161-creator-production"
