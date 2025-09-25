@@ -174,7 +174,7 @@ app.get('/', (c) => {
             </div>
           \`;
           
-          // Start chat session with this order
+          // Start chat session with this order - wait for real progress
           fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -184,17 +184,13 @@ app.get('/', (c) => {
             })
           }).then(response => response.json())
             .then(data => {
-              // Show N161 generation progress
-              if (data.response.includes('Starting N161 appeal generation')) {
-                showN161Progress(appealDiv, filename);
-              } else {
-                appealDiv.innerHTML += \`
-                  <div class="bg-white border rounded-lg p-4">
-                    <h3 class="font-bold mb-2">📋 Next Steps</h3>
-                    <div class="prose prose-sm">\${data.response.replace(/\\n/g, '<br>')}</div>
-                  </div>
-                \`;
-              }
+              // Show actual response from backend
+              appealDiv.innerHTML += \`
+                <div class="bg-white border rounded-lg p-4">
+                  <h3 class="font-bold mb-2">📋 Appeal Status</h3>
+                  <div class="prose prose-sm">\${data.response.replace(/\\n/g, '<br>')}</div>
+                </div>
+              \`;
             });
         }
         
@@ -229,33 +225,31 @@ app.get('/', (c) => {
           
           const progressContainer = document.getElementById('progress-container');
           
-          // Show progress steps one by one
+          // Show processing steps (not fake completion)
           sections.forEach((section, index) => {
             setTimeout(() => {
               const stepDiv = document.createElement('div');
-              stepDiv.className = 'flex items-center space-x-3 p-2 bg-green-50 border border-green-200 rounded animate-pulse';
+              stepDiv.className = 'flex items-center space-x-3 p-2 bg-blue-50 border border-blue-200 rounded animate-pulse';
               stepDiv.innerHTML = \`
                 <span class="text-lg">\${section.icon}</span>
                 <span class="text-sm font-medium">\${section.name}...</span>
-                <span class="ml-auto text-green-600 text-xs">✓ Complete</span>
+                <span class="ml-auto text-blue-600 text-xs">Processing</span>
               \`;
               progressContainer.appendChild(stepDiv);
               
-              // Remove animation after a moment
-              setTimeout(() => {
-                stepDiv.classList.remove('animate-pulse');
-                stepDiv.classList.add('bg-green-100');
-              }, 800);
-              
-            }, index * 400); // 400ms delay between each step
+            }, index * 200); // 200ms delay between each step
           });
           
-          // Show completion message after all steps
+          // Show completion message after processing
           setTimeout(() => {
             appealDiv.innerHTML += \`
-              <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 mt-4">
-                <h3 class="font-bold text-blue-800 mb-2">✅ N161 Appeal Generation Complete!</h3>
-                <p class="text-sm text-blue-700">Please provide your appellant details to finalize the form:</p>
+              <div class="bg-green-50 p-4 rounded-lg border border-green-200 mt-4">
+                <h3 class="font-bold text-green-800 mb-2">✅ N161 Appeal Generation Complete!</h3>
+                <p class="text-sm text-green-700 mb-3">Your completed N161 form has been saved to:</p>
+                <div class="bg-white p-3 rounded border mb-3">
+                  <code class="text-sm text-gray-800">~/Downloads/N161_Appeal_\${filename.replace('.pdf', '')}_\${new Date().toISOString().split('T')[0]}.pdf</code>
+                </div>
+                <p class="text-sm text-green-700">Please provide your appellant details to finalize the form:</p>
                 <div class="mt-2 space-y-1 text-sm">
                   <div>📋 <strong>Your Name:</strong></div>
                   <div>📍 <strong>Your Address:</strong></div>
@@ -264,7 +258,7 @@ app.get('/', (c) => {
                 </div>
               </div>
             \`;
-          }, sections.length * 400 + 1000);
+          }, sections.length * 200 + 2000);
         }
         
         document.getElementById('chat-form').addEventListener('submit', async (e) => {
