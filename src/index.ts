@@ -200,6 +200,7 @@ app.get('/', (c) => {
             
             let completedSections = [];
             let totalSections = 0;
+            let sectionTimers = {}; // Track start time for each section
             
             eventSource.onmessage = function(event) {
               const progress = JSON.parse(event.data);
@@ -237,20 +238,22 @@ app.get('/', (c) => {
                   </div>
                   <div class="bg-white border rounded-lg overflow-hidden">
                     <div class="bg-gray-50 px-4 py-2 border-b">
-                      <div class="grid grid-cols-2 gap-4 text-sm font-medium text-gray-700">
+                      <div class="grid grid-cols-3 gap-4 text-sm font-medium text-gray-700">
                         <div>Section</div>
                         <div>Status</div>
+                        <div>Duration</div>
                       </div>
                     </div>
                     <div id="section-table" class="divide-y">
                       \${allSections.map((section, index) => \`
-                        <div id="row-\${index + 1}" class="grid grid-cols-2 gap-4 px-4 py-2 text-sm">
+                        <div id="row-\${index + 1}" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
                           <div class="font-medium">\${section}</div>
-                          <div id="status-\${index + 1}" class="text-gray-500">
+                          <div id="status-\${index + 1}">
                             <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">
                               Queued
                             </span>
                           </div>
+                          <div id="time-\${index + 1}" class="text-gray-400 text-xs">--</div>
                         </div>
                       \`).join('')}
                     </div>
@@ -261,6 +264,9 @@ app.get('/', (c) => {
               const progressCounter = document.getElementById('progress-counter');
               
               if (progress.status === 'processing') {
+                // Start timer for this section
+                sectionTimers[progress.step] = Date.now();
+                
                 // Update status to "Processing"
                 const statusElement = document.getElementById(\`status-\${progress.step}\`);
                 if (statusElement) {
@@ -274,6 +280,11 @@ app.get('/', (c) => {
               } else if (progress.status === 'completed') {
                 completedSections.push(progress.step);
                 
+                // Calculate duration for this section
+                const sectionDuration = sectionTimers[progress.step] 
+                  ? Math.floor((Date.now() - sectionTimers[progress.step]) / 1000)
+                  : 0;
+                
                 // Update status to "Completed"
                 const statusElement = document.getElementById(\`status-\${progress.step}\`);
                 if (statusElement) {
@@ -283,6 +294,13 @@ app.get('/', (c) => {
                       Completed
                     </span>
                   \`;
+                }
+                
+                // Update duration
+                const timeElement = document.getElementById(\`time-\${progress.step}\`);
+                if (timeElement) {
+                  timeElement.textContent = \`\${sectionDuration}s\`;
+                  timeElement.className = 'text-green-600 text-xs font-medium';
                 }
                 
                 // Update progress counter
