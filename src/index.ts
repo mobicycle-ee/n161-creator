@@ -22,13 +22,13 @@ app.get('/', (c) => {
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <script src="https://cdn.tailwindcss.com"></script>
     </head>
-    <body class="bg-gray-50 min-h-screen">
-      <div class="mx-auto p-6">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <body class="bg-red-800 min-h-screen">
+      <div class="mx-auto px-6 pt-48">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-auto px-24">
           
           <!-- Column 1: Selection & Chat -->
-          <div class="bg-white rounded-xl shadow-lg p-6">
-            <h1 class="text-2xl font-bold text-blue-600 mb-2">⚖️ N161 Appeal Creator</h1>
+          <div class="bg-white rounded-xl shadow-lg p-6 max-w-3xl">
+            <h1 class="text-2xl font-bold text-orange-700 mb-2">⚖️ N161 Appeal Creator</h1>
             <p class="text-gray-600 mb-6">Find your court order and create an appeal</p>
             
             <div class="mb-6">
@@ -51,7 +51,7 @@ app.get('/', (c) => {
               </div>
             </div>
             
-            <div class="text-center text-gray-500 mb-4">— or —</div>
+            <div class="text-center text-red-500 mb-4">— or —</div>
             
             <div class="mb-4">
               <p class="font-medium mb-2">💬 Chat with AI</p>
@@ -61,7 +61,7 @@ app.get('/', (c) => {
                          class="flex-1 p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" 
                          placeholder="e.g., 3 September 2025">
                   <button type="submit" 
-                          class="bg-green-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-green-700">
+                          class="bg-red-900 text-white px-4 py-3 rounded-lg font-semibold hover:bg-black-700">
                     Send
                   </button>
                 </div>
@@ -77,13 +77,14 @@ app.get('/', (c) => {
           
           <!-- Column 2: N161 Sections Progress -->
           <div class="bg-white rounded-xl shadow-lg p-6">
-            <h2 class="text-2xl font-bold text-green-600 mb-4">📄 N161 Form Sections</h2>
+            <h2 class="text-2xl font-bold text-blue-900 mb-4">📄 N161 Form Sections</h2>
+            <button onclick="testStreaming()" class="mb-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">Test Status Updates</button>
             <div class="bg-white border rounded-lg overflow-hidden">
-              <div class="bg-gray-50 px-4 py-2 border-b">
+              <div class="bg-red-500 px-4 py-2 border-b">
                 <div class="grid grid-cols-3 gap-4 text-sm font-medium text-gray-700">
                   <div class="w-full">Section</div>
-                  <div class="max-w-2xl">Status</div>
-                  <div class="max-w-xl">Duration</div>
+                  <div class="max-w-3xl">Status</div>
+                  <div class="max-w-2xl">Duration</div>
                 </div>
               </div>
               <div id="section-table" class="divide-y">
@@ -150,24 +151,29 @@ app.get('/', (c) => {
                   <div id="time-12" class="text-gray-400 text-xs">--</div>
                 </div>
                 <div id="row-13" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
-                  <div class="font-medium">Section 13: Supporting Documents List</div>
+                  <div class="font-medium">Section 12: Vulnerability</div>
                   <div id="status-13"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Queued</span></div>
                   <div id="time-13" class="text-gray-400 text-xs">--</div>
                 </div>
                 <div id="row-14" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
-                  <div class="font-medium">Section 14: Statement of Truth</div>
+                  <div class="font-medium">Section 13: Supporting Documents List</div>
                   <div id="status-14"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Queued</span></div>
                   <div id="time-14" class="text-gray-400 text-xs">--</div>
                 </div>
                 <div id="row-15" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
-                  <div class="font-medium">Analyzing for void order potential</div>
+                  <div class="font-medium">Section 14: Statement of Truth</div>
                   <div id="status-15"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Queued</span></div>
                   <div id="time-15" class="text-gray-400 text-xs">--</div>
                 </div>
                 <div id="row-16" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
-                  <div class="font-medium">Generating supporting documents</div>
+                  <div class="font-medium">Analyzing for void order potential</div>
                   <div id="status-16"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Queued</span></div>
                   <div id="time-16" class="text-gray-400 text-xs">--</div>
+                </div>
+                <div id="row-17" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
+                  <div class="font-medium">Generating supporting documents</div>
+                  <div id="status-17"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Queued</span></div>
+                  <div id="time-17" class="text-gray-400 text-xs">--</div>
                 </div>
               </div>
             </div>
@@ -418,7 +424,7 @@ app.get('/', (c) => {
           setTimeout(() => {
             appealDiv.innerHTML += \`
               <div class="bg-green-50 p-4 rounded-lg border border-green-200 mt-4">
-                <h3 class="font-bold text-green-800 mb-2">✅ N161 Appeal Generation Complete!</h3>
+                <h3 class="font-bold text-red-800 mb-2">✅ N161 Appeal Generation Complete!</h3>
                 <p class="text-sm text-green-700 mb-3">Your completed N161 form has been saved to:</p>
                 <div class="bg-white p-3 rounded border mb-3">
                   <code class="text-sm text-gray-800">~/Downloads/N161_Appeal_\${filename.replace('.pdf', '')}_\${new Date().toISOString().split('T')[0]}.pdf</code>
@@ -433,6 +439,53 @@ app.get('/', (c) => {
               </div>
             \`;
           }, sections.length * 200 + 2000);
+        }
+        
+        function testStreaming() {
+          // Simulate streaming updates to test the status/duration functionality
+          const sections = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
+          let sectionTimers = {};
+          
+          sections.forEach((step, index) => {
+            setTimeout(() => {
+              // Start processing
+              sectionTimers[step] = Date.now();
+              
+              const statusElement = document.getElementById(\`status-\${step}\`);
+              if (statusElement) {
+                statusElement.innerHTML = \`
+                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                    <span class="w-2 h-2 bg-blue-500 rounded-full mr-1 animate-pulse"></span>
+                    Processing
+                  </span>
+                \`;
+              }
+              
+              // Complete processing after 2-5 seconds
+              const processingTime = 2000 + Math.random() * 3000;
+              setTimeout(() => {
+                const sectionDuration = Math.floor((Date.now() - sectionTimers[step]) / 1000);
+                
+                // Update status to completed
+                if (statusElement) {
+                  statusElement.innerHTML = \`
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                      <span class="text-green-600 mr-1">✓</span>
+                      Completed
+                    </span>
+                  \`;
+                }
+                
+                // Update duration
+                const timeElement = document.getElementById(\`time-\${step}\`);
+                if (timeElement) {
+                  timeElement.textContent = \`\${sectionDuration}s\`;
+                  timeElement.className = 'text-green-600 text-xs font-medium';
+                }
+              }, processingTime);
+              
+            }, index * 500); // Start each section 500ms apart
+          });
         }
         
         document.getElementById('chat-form').addEventListener('submit', async (e) => {
