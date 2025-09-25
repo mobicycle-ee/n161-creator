@@ -65,6 +65,35 @@ chatRoutes.post('/', async (c) => {
   try {
     // Process based on current stage
     switch (session.stage) {
+      case 'party_selection':
+        // Handle party selection after order is chosen
+        const partyNumber = parseInt(message.trim());
+        const parties = session.context.parties || [];
+        
+        if (partyNumber && partyNumber > 0 && partyNumber <= parties.length) {
+          // User selected a party from the list
+          const selectedParty = parties[partyNumber - 1];
+          session.appellantDetails = {
+            name: selectedParty.name,
+            address: selectedParty.address,
+            role: selectedParty.role,
+            selectedFromOrder: true
+          };
+          session.stage = 'generating';
+          
+          response = `✅ **Selected Appellant:** ${selectedParty.name} (${selectedParty.role})
+
+🔍 Starting N161 appeal generation with extracted details...`;
+          
+          // Start the streaming N161 generation
+          session.context.streaming = true;
+          session.context.startGeneration = true;
+          
+        } else {
+          response = `Please select a valid party number (1-${parties.length}) or type "manual" to enter details yourself.`;
+        }
+        break;
+        
       case 'gathering':
         // Try to parse date from message
         if (isDateOnly(message)) {
@@ -99,14 +128,45 @@ Please provide the complete date, for example:
             court,
             selected: true
           };
-          session.stage = 'analyzing';
+          session.stage = 'party_selection';
           
-          // Start streaming N161 generation
-          response = `🔍 Starting N161 appeal generation for: **${filename}**`;
-          
-          // Set up for streaming - store session with streaming flag
-          session.context.streaming = true;
-          session.context.filename = filename;
+          // Extract parties from the court order PDF first
+          try {
+            const orderPdf = await c.env.ORDERS.get(orderKey);
+            if (!orderPdf) {
+              response = `❌ Could not retrieve court order PDF: ${filename}`;
+              break;
+            }
+            
+            // Use AI to extract party information from PDF
+            const extractParties = await c.env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
+              prompt: `Extract all parties mentioned in this court order. Look for names, addresses, and roles (claimant, defendant, tenant, landlord, etc.). Return as JSON array with format: [{"name": "John Smith", "address": "123 Main St", "role": "Claimant"}, ...]`,
+              max_tokens: 500
+            });
+            
+            const parties = tryParseJSON(extractParties.response) || [];
+            session.context.parties = parties;
+            
+            if (parties.length > 0) {
+              response = `✅ Found **${filename}** with ${parties.length} parties:
+
+${parties.map((p, i) => `${i + 1}. **${p.name || 'Unknown'}** (${p.role || 'Unknown role'})`).join('\n')}
+
+**Please select which party you are appealing as:**
+Type the number (e.g., "1", "2") to proceed with N161 generation.`;
+            } else {
+              response = `⚠️ Could not extract party information from **${filename}**. 
+
+Please provide your appellant details manually:
+📋 **Your Name:** 
+📍 **Your Address:** 
+📞 **Phone Number:** 
+✉️ **Email Address:**`;
+            }
+            
+          } catch (error) {
+            response = `❌ Error processing court order: ${error.message}. Please try again.`;
+          }
           
         } else {
           // Try to search for orders with the provided information
@@ -155,18 +215,28 @@ Or tell me:
         break;
         
       case 'analyzing':
-        // Extract appellant details
-        const appellantPrompt = `Extract appellant details from: "${message}"
-          Look for: name, address, phone, email.
-          Return as JSON.`;
+        // Check if user is selecting a party number
+        const partyNumber = parseInt(message.trim());
+        const parties = session.context.parties || [];
         
-        const appellantData = await c.env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
-          prompt: appellantPrompt,
-          max_tokens: 300
-        });
-        
-        const appellant = tryParseJSON(appellantData.response);
-        if (appellant && appellant.name) {
+        if (partyNumber && partyNumber > 0 && partyNumber <= parties.length) {
+          // User selected a party from the list
+          const selectedParty = parties[partyNumber - 1];
+          session.appellantDetails = {
+            name: selectedParty.name,
+            address: selectedParty.address,
+            role: selectedParty.role,
+            selectedFromOrder: true
+          };
+          session.stage = 'generating';
+          
+          response = `✅ **Selected Appellant:** ${selectedParty.name} (${selectedParty.role})
+
+🔍 Starting N161 appeal generation with extracted details...`;
+          
+          // Start the streaming N161 generation
+          session.context.streaming = true;
+          session.context.filename = session.context.filename;
           session.appellantDetails = appellant;
           session.stage = 'generating';
           response = 'Perfect! I have all the information needed. Generating your appeal documents now...';

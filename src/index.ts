@@ -198,12 +198,30 @@ app.get('/', (c) => {
             // Connect to streaming endpoint for real-time progress
             const eventSource = new EventSource(\`/api/chat/stream/\${sessionId}\`);
             
+            let completedSections = [];
+            let totalSections = 0;
+            
             eventSource.onmessage = function(event) {
               const progress = JSON.parse(event.data);
               
-              // Update the display with real progress
-              if (progress.status === 'processing') {
-                // Show current step being processed
+              if (totalSections === 0) {
+                totalSections = progress.total;
+                
+                // Define all sections upfront
+                const allSections = [
+                  'Finding blank N161 form',
+                  'Section 1: Case Details',
+                  'Section 2: Appeal Details',
+                  'Section 3: Legal Representation',
+                  'Section 4: Permission to Appeal',
+                  'Section 5: Order Details',
+                  'Section 6: Grounds of Appeal',
+                  'Section 7: Skeleton Argument',
+                  'Analyzing void order potential',
+                  'Generating supporting documents'
+                ];
+                
+                // Initialize the progress display with table
                 appealDiv.innerHTML = \`
                   <div class="border-l-4 border-green-500 pl-4 mb-6">
                     <h3 class="font-bold text-lg mb-2">Selected Order</h3>
@@ -211,20 +229,64 @@ app.get('/', (c) => {
                     <p class="text-sm text-gray-600">Court: \${court}</p>
                   </div>
                   <div class="bg-blue-50 p-4 rounded-lg mb-4">
-                    <div class="animate-pulse">\${progress.message}</div>
+                    <div class="text-lg font-medium">🔍 N161 Appeal Generation</div>
                     <div class="text-xs text-blue-600 mt-2">
-                      ⏱️ Working for: <span id="timer">\${Math.floor((Date.now() - startTime) / 1000)}s</span>
-                      | Step \${progress.step}/\${progress.total}
+                      ⏱️ Working for: <span id="timer">0s</span>
+                      | Progress: <span id="progress-counter">0/\${totalSections}</span>
+                    </div>
+                  </div>
+                  <div class="bg-white border rounded-lg overflow-hidden">
+                    <div class="bg-gray-50 px-4 py-2 border-b">
+                      <div class="grid grid-cols-2 gap-4 text-sm font-medium text-gray-700">
+                        <div>Section</div>
+                        <div>Status</div>
+                      </div>
+                    </div>
+                    <div id="section-table" class="divide-y">
+                      \${allSections.map((section, index) => \`
+                        <div id="row-\${index + 1}" class="grid grid-cols-2 gap-4 px-4 py-2 text-sm">
+                          <div class="font-medium">\${section}</div>
+                          <div id="status-\${index + 1}" class="text-gray-500">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">
+                              Queued
+                            </span>
+                          </div>
+                        </div>
+                      \`).join('')}
                     </div>
                   </div>
                 \`;
+              }
+              
+              const progressCounter = document.getElementById('progress-counter');
+              
+              if (progress.status === 'processing') {
+                // Update status to "Processing"
+                const statusElement = document.getElementById(\`status-\${progress.step}\`);
+                if (statusElement) {
+                  statusElement.innerHTML = \`
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                      <span class="w-2 h-2 bg-blue-500 rounded-full mr-1 animate-pulse"></span>
+                      Processing
+                    </span>
+                  \`;
+                }
               } else if (progress.status === 'completed') {
-                // Add completed step to list
-                appealDiv.innerHTML += \`
-                  <div class="bg-green-50 p-2 rounded border border-green-200 mb-1">
-                    \${progress.message}
-                  </div>
-                \`;
+                completedSections.push(progress.step);
+                
+                // Update status to "Completed"
+                const statusElement = document.getElementById(\`status-\${progress.step}\`);
+                if (statusElement) {
+                  statusElement.innerHTML = \`
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                      <span class="text-green-600 mr-1">✓</span>
+                      Completed
+                    </span>
+                  \`;
+                }
+                
+                // Update progress counter
+                progressCounter.textContent = \`\${completedSections.length}/\${totalSections}\`;
               } else if (progress.status === 'finished') {
                 // Stop timer and show completion
                 clearInterval(timerInterval);
