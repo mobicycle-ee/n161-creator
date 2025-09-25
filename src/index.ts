@@ -161,8 +161,10 @@ app.get('/', (c) => {
             </div>
           \`;
           
-          // Show appeal generation in column 2
+          // Show appeal generation in column 2 with timer
           const appealDiv = document.getElementById('appeal-content');
+          const startTime = Date.now();
+          
           appealDiv.innerHTML = \`
             <div class="border-l-4 border-green-500 pl-4 mb-6">
               <h3 class="font-bold text-lg mb-2">Selected Order</h3>
@@ -171,8 +173,18 @@ app.get('/', (c) => {
             </div>
             <div class="bg-blue-50 p-4 rounded-lg mb-4">
               <div class="animate-pulse">🤖 Analyzing order for appeal grounds...</div>
+              <div class="text-xs text-blue-600 mt-2">
+                ⏱️ Working for: <span id="timer">0s</span>
+              </div>
             </div>
           \`;
+          
+          // Start timer
+          const timerElement = document.getElementById('timer');
+          const timerInterval = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            timerElement.textContent = \`\${elapsed}s\`;
+          }, 1000);
           
           // Start chat session with this order - wait for real progress
           fetch('/api/chat', {
@@ -184,10 +196,15 @@ app.get('/', (c) => {
             })
           }).then(response => response.json())
             .then(data => {
-              // Show actual response from backend
+              // Stop timer
+              clearInterval(timerInterval);
+              const totalTime = Math.floor((Date.now() - startTime) / 1000);
+              
+              // Show actual response from backend with completion time
               appealDiv.innerHTML += \`
                 <div class="bg-white border rounded-lg p-4">
                   <h3 class="font-bold mb-2">📋 Appeal Status</h3>
+                  <div class="text-xs text-green-600 mb-2">✅ Completed in \${totalTime}s</div>
                   <div class="prose prose-sm">\${data.response.replace(/\\n/g, '<br>')}</div>
                 </div>
               \`;
