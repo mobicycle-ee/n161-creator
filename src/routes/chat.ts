@@ -32,72 +32,69 @@ chatRoutes.post('/', async (c) => {
     // Process based on current stage
     switch (session.stage) {
       case 'gathering':
-        // Extract case details from message using AI
-        const extractPrompt = `Extract case details from this message: "${message}"
-          Look for: case number, order date, court name, judge name, reason for appeal.
-          Return as JSON with keys: caseNumber, orderDate, courtName, judgeName, appealReason`;
-        
-        const extracted = await c.env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
-          prompt: extractPrompt,
-          max_tokens: 500
-        });
-        
-        // Check if we have enough info
-        const parsedInfo = tryParseJSON(extracted.response);
-        if (parsedInfo && parsedInfo.caseNumber) {
-          // Try to fetch order from KV
-          const order = await c.env.ORDERS.get(parsedInfo.caseNumber, 'json');
+        // Try to parse date from message
+        if (isDateOnly(message)) {
+          response = `I see you entered "${message}". To find your court order, I need more details:
+
+📅 **What year?** (e.g., 2024, 2025)
+📅 **What month?** (e.g., September, March, October)
+
+Or you can provide the complete date like:
+• "3 September 2025"
+• "2025.09.03"  
+• "3rd September 2025"`;
           
-          if (order) {
-            session.orderDetails = order;
-            session.stage = 'analyzing';
-            response = `I found your case ${parsedInfo.caseNumber}. Let me analyze the order for potential appeal grounds...`;
-            
-            // Start analysis with book reference
-            const analysis = await aiService.analyzeOrderForAppeal(order);
-            
-            // Check books for relevant void order information
-            const voidContent = await bookService.getRelevantContent('void orders');
-            const appealContent = await bookService.getRelevantContent('appeals');
-            
-            // Enhance analysis with book knowledge
-            if (voidContent.length > 0) {
-              analysis.bookReferences = voidContent;
-              analysis.voidPossibility = true;
-            }
-            
-            session.context.analysis = analysis;
-            session.context.bookReferences = [...voidContent, ...appealContent];
-            
-            response += `\n\nI've identified ${analysis.grounds.length} potential grounds of appeal:\n`;
-            analysis.grounds.forEach((ground, i) => {
-              response += `${i + 1}. ${ground}\n`;
-            });
-            
-            if (analysis.voidPossibility) {
-              response += `\n\n⚠️ IMPORTANT: Based on my analysis and reference to our legal database, this order may be VOID AB INITIO (void from the beginning). This means it may have no legal effect whatsoever. See Book 4 of our legal series for detailed information on void orders.`;
-            }
-            
-            response += '\n\nPlease provide your appellant details (name, address, contact information) to proceed with generating the documents.';
-          } else {
-            // Create order from extracted info
-            session.orderDetails = {
-              id: crypto.randomUUID(),
-              caseNumber: parsedInfo.caseNumber,
-              courtName: parsedInfo.courtName || 'Unknown Court',
-              judge: parsedInfo.judgeName || 'Unknown Judge',
-              orderDate: parsedInfo.orderDate || new Date().toISOString().split('T')[0],
-              decision: parsedInfo.appealReason || 'Decision to be appealed',
-              parties: {
-                claimant: 'To be determined',
-                defendant: 'To be determined'
-              }
-            };
-            response = `I understand you want to appeal case ${parsedInfo.caseNumber}. Please provide your full name and address so I can prepare the appeal documents.`;
-            session.stage = 'analyzing';
-          }
+        } else if (isDateWithMissingInfo(message)) {
+          const missing = getMissingDateInfo(message);
+          response = `I found "${message}" but I still need the ${missing.join(' and ')}.
+
+Please provide the complete date, for example:
+• "3 September 2025"
+• "2025.09.03"`;
+          
         } else {
-          response = `I need more information. Could you please provide:\n- The case number\n- The date of the order\n- Your reason for wanting to appeal`;
+          // Try to search for orders with the provided information
+          const searchResult = await searchOrders(c.env.ORDERS, message);
+          
+          if (searchResult.files && searchResult.files.length > 0) {
+            session.context.foundOrders = searchResult.files;
+            session.stage = 'analyzing';
+            
+            if (searchResult.files.length === 1) {
+              const file = searchResult.files[0];
+              response = `✅ Found your order: **${file.filename}** from ${file.court}
+
+Let me analyze this order for appeal grounds...`;
+              
+              // Set the selected order
+              session.orderDetails = {
+                id: crypto.randomUUID(),
+                filename: file.filename,
+                key: file.key,
+                court: file.court,
+                size: file.size
+              };
+              
+            } else {
+              response = `Found ${searchResult.files.length} orders matching "${message}":\n\n`;
+              searchResult.files.forEach((file, i) => {
+                response += `${i + 1}. ${file.filename} (${file.court})\n`;
+              });
+              response += `\nPlease tell me which one you want to appeal by saying the number (e.g., "1" or "2").`;
+            }
+          } else {
+            response = `I couldn't find any orders matching "${message}".
+
+Please provide the order date in one of these formats:
+• "3 September 2025"
+• "2025.09.03"
+• "3rd September 2025"
+
+Or tell me:
+📅 Day: (e.g., 3, 15, 23)
+📅 Month: (e.g., September, March) 
+📅 Year: (e.g., 2024, 2025)`;
+          }
         }
         break;
         
@@ -223,6 +220,126 @@ chatRoutes.get('/documents/:id', async (c) => {
     'Content-Disposition': `attachment; filename="${id}.txt"`
   });
 });
+
+function isDateOnly(message: string): boolean {
+  return /^\d{1,2}$/.test(message.trim());
+}
+
+function isDateWithMissingInfo(message: string): boolean {
+  const words = message.toLowerCase().split(/\s+/);
+  let hasDay = false, hasMonth = false, hasYear = false;
+  
+  for (const word of words) {
+    if (/^\d{1,2}$/.test(word)) hasDay = true;
+    if (/^(january|february|march|april|may|june|july|august|september|october|november|december)/.test(word)) hasMonth = true;
+    if (/^\d{4}$/.test(word)) hasYear = true;
+  }
+  
+  const infoCount = [hasDay, hasMonth, hasYear].filter(Boolean).length;
+  return infoCount > 0 && infoCount < 3;
+}
+
+function getMissingDateInfo(message: string): string[] {
+  const words = message.toLowerCase().split(/\s+/);
+  let hasDay = false, hasMonth = false, hasYear = false;
+  
+  for (const word of words) {
+    if (/^\d{1,2}$/.test(word)) hasDay = true;
+    if (/^(january|february|march|april|may|june|july|august|september|october|november|december)/.test(word)) hasMonth = true;
+    if (/^\d{4}$/.test(word)) hasYear = true;
+  }
+  
+  const missing = [];
+  if (!hasDay) missing.push('day');
+  if (!hasMonth) missing.push('month');
+  if (!hasYear) missing.push('year');
+  
+  return missing;
+}
+
+async function searchOrders(ordersBinding: any, query: string): Promise<any> {
+  try {
+    const variations = parseDate(query);
+    const list = await ordersBinding.list();
+    const matchingFiles: any[] = [];
+    
+    for (const object of list.objects) {
+      if (object.key.endsWith('.pdf')) {
+        const matches = variations.some(date => 
+          object.key.toLowerCase().includes(date.toLowerCase())
+        );
+        
+        if (matches) {
+          matchingFiles.push({
+            key: object.key,
+            size: object.size,
+            uploaded: object.uploaded,
+            filename: object.key.split('/').pop(),
+            court: object.key.split('/')[0]?.replace('orders_', '')
+          });
+        }
+      }
+    }
+    
+    return { files: matchingFiles };
+  } catch (error) {
+    return { files: [] };
+  }
+}
+
+function parseDate(input: string, year?: string): string[] {
+  const variations: string[] = [];
+  
+  const monthNames = {
+    january: '01', february: '02', march: '03', april: '04',
+    may: '05', june: '06', july: '07', august: '08',
+    september: '09', october: '10', november: '11', december: '12',
+    jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+    jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
+  };
+  
+  const words = input.toLowerCase().split(/\s+/);
+  let day, month, yearPart;
+  
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    if (/^\d{1,2}$/.test(word) && !day) {
+      day = word.padStart(2, '0');
+    } else if (monthNames[word] && !month) {
+      month = monthNames[word];
+    } else if (/^\d{4}$/.test(word) && !yearPart) {
+      yearPart = word;
+    }
+    // Check for partial month matches
+    else if (!month) {
+      for (const [monthName, monthNum] of Object.entries(monthNames)) {
+        if (monthName.startsWith(word) || word.includes(monthName.substring(0, 3))) {
+          month = monthNum;
+          break;
+        }
+      }
+    }
+  }
+  
+  if (!yearPart && year) {
+    yearPart = year;
+  } else if (!yearPart) {
+    yearPart = new Date().getFullYear().toString();
+  }
+  
+  if (day && month && yearPart) {
+    // Primary format used in your files
+    variations.push(`${yearPart}.${month}.${day}`);
+    // Alternative formats
+    variations.push(`${yearPart}-${month}-${day}`);
+    variations.push(`${day}.${month}.${yearPart}`);
+    variations.push(`${day}-${month}-${yearPart}`);
+  }
+  
+  // Also add raw input for fallback
+  variations.push(input);
+  return variations;
+}
 
 function tryParseJSON(str: string): any {
   try {

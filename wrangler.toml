@@ -47,3 +47,10 @@ database_id = "b884868a-ac47-43d6-a6d1-baa9efc081ed"
 [[kv_namespaces]]
 binding = "APPEALS"
 id = "1c6c3a4156494b01a6f509b83dec4a50"
+
+[[r2_buckets]]
+binding = "ORDERS"
+bucket_name = "legal-housing-court-orders"
+
+[vars]
+CLOUDFLARE_ACCESS_ENABLED = "true"
