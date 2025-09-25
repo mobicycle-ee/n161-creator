@@ -75,13 +75,98 @@ app.get('/', (c) => {
             </div>
           </div>
           
-          <!-- Column 2: Appeal Generation Results -->
+          <!-- Column 2: N161 Sections Progress -->
           <div class="bg-white rounded-xl shadow-lg p-6">
-            <h2 class="text-2xl font-bold text-green-600 mb-2">📄 Appeal Generation</h2>
-            <div id="appeal-content" class="text-gray-500">
-              <div class="text-center py-8">
-                <div class="text-4xl mb-4">⚖️</div>
-                <p>Select a court order to begin generating your N161 appeal</p>
+            <h2 class="text-2xl font-bold text-green-600 mb-4">📄 N161 Form Sections</h2>
+            <div class="bg-white border rounded-lg overflow-hidden">
+              <div class="bg-gray-50 px-4 py-2 border-b">
+                <div class="grid grid-cols-3 gap-4 text-sm font-medium text-gray-700">
+                  <div>Section</div>
+                  <div>Status</div>
+                  <div>Duration</div>
+                </div>
+              </div>
+              <div id="section-table" class="divide-y">
+                <div id="row-1" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
+                  <div class="font-medium">Finding blank N161 form</div>
+                  <div id="status-1"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Queued</span></div>
+                  <div id="time-1" class="text-gray-400 text-xs">--</div>
+                </div>
+                <div id="row-2" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
+                  <div class="font-medium">Section 1: Case Details and Parties</div>
+                  <div id="status-2"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Queued</span></div>
+                  <div id="time-2" class="text-gray-400 text-xs">--</div>
+                </div>
+                <div id="row-3" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
+                  <div class="font-medium">Section 2: Nature of Appeal</div>
+                  <div id="status-3"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Queued</span></div>
+                  <div id="time-3" class="text-gray-400 text-xs">--</div>
+                </div>
+                <div id="row-4" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
+                  <div class="font-medium">Section 3: Legal Representation</div>
+                  <div id="status-4"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Queued</span></div>
+                  <div id="time-4" class="text-gray-400 text-xs">--</div>
+                </div>
+                <div id="row-5" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
+                  <div class="font-medium">Section 4: Permission to Appeal</div>
+                  <div id="status-5"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Queued</span></div>
+                  <div id="time-5" class="text-gray-400 text-xs">--</div>
+                </div>
+                <div id="row-6" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
+                  <div class="font-medium">Section 5: Details of Order Being Appealed</div>
+                  <div id="status-6"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Queued</span></div>
+                  <div id="time-6" class="text-gray-400 text-xs">--</div>
+                </div>
+                <div id="row-7" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
+                  <div class="font-medium">Section 6: Grounds of Appeal</div>
+                  <div id="status-7"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Queued</span></div>
+                  <div id="time-7" class="text-gray-400 text-xs">--</div>
+                </div>
+                <div id="row-8" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
+                  <div class="font-medium">Section 7: Skeleton Argument</div>
+                  <div id="status-8"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Queued</span></div>
+                  <div id="time-8" class="text-gray-400 text-xs">--</div>
+                </div>
+                <div id="row-9" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
+                  <div class="font-medium">Section 8: Aarhus Convention Claims</div>
+                  <div id="status-9"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Queued</span></div>
+                  <div id="time-9" class="text-gray-400 text-xs">--</div>
+                </div>
+                <div id="row-10" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
+                  <div class="font-medium">Section 9: Relief Sought</div>
+                  <div id="status-10"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Queued</span></div>
+                  <div id="time-10" class="text-gray-400 text-xs">--</div>
+                </div>
+                <div id="row-11" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
+                  <div class="font-medium">Section 10: Other Applications</div>
+                  <div id="status-11"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Queued</span></div>
+                  <div id="time-11" class="text-gray-400 text-xs">--</div>
+                </div>
+                <div id="row-12" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
+                  <div class="font-medium">Section 11: Evidence and Supporting Documents</div>
+                  <div id="status-12"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Queued</span></div>
+                  <div id="time-12" class="text-gray-400 text-xs">--</div>
+                </div>
+                <div id="row-13" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
+                  <div class="font-medium">Section 13: Supporting Documents List</div>
+                  <div id="status-13"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Queued</span></div>
+                  <div id="time-13" class="text-gray-400 text-xs">--</div>
+                </div>
+                <div id="row-14" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
+                  <div class="font-medium">Section 14: Statement of Truth</div>
+                  <div id="status-14"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Queued</span></div>
+                  <div id="time-14" class="text-gray-400 text-xs">--</div>
+                </div>
+                <div id="row-15" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
+                  <div class="font-medium">Analyzing for void order potential</div>
+                  <div id="status-15"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Queued</span></div>
+                  <div id="time-15" class="text-gray-400 text-xs">--</div>
+                </div>
+                <div id="row-16" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
+                  <div class="font-medium">Generating supporting documents</div>
+                  <div id="status-16"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Queued</span></div>
+                  <div id="time-16" class="text-gray-400 text-xs">--</div>
+                </div>
               </div>
             </div>
           </div>
@@ -207,61 +292,10 @@ app.get('/', (c) => {
               
               if (totalSections === 0) {
                 totalSections = progress.total;
-                
-                // Define all sections upfront
-                const allSections = [
-                  'Finding blank N161 form',
-                  'Section 1: Case Details',
-                  'Section 2: Appeal Details',
-                  'Section 3: Legal Representation',
-                  'Section 4: Permission to Appeal',
-                  'Section 5: Order Details',
-                  'Section 6: Grounds of Appeal',
-                  'Section 7: Skeleton Argument',
-                  'Analyzing void order potential',
-                  'Generating supporting documents'
-                ];
-                
-                // Initialize the progress display with table
-                appealDiv.innerHTML = \`
-                  <div class="border-l-4 border-green-500 pl-4 mb-6">
-                    <h3 class="font-bold text-lg mb-2">Selected Order</h3>
-                    <p class="font-medium">\${filename}</p>
-                    <p class="text-sm text-gray-600">Court: \${court}</p>
-                  </div>
-                  <div class="bg-blue-50 p-4 rounded-lg mb-4">
-                    <div class="text-lg font-medium">🔍 N161 Appeal Generation</div>
-                    <div class="text-xs text-blue-600 mt-2">
-                      ⏱️ Working for: <span id="timer">0s</span>
-                      | Progress: <span id="progress-counter">0/\${totalSections}</span>
-                    </div>
-                  </div>
-                  <div class="bg-white border rounded-lg overflow-hidden">
-                    <div class="bg-gray-50 px-4 py-2 border-b">
-                      <div class="grid grid-cols-3 gap-4 text-sm font-medium text-gray-700">
-                        <div>Section</div>
-                        <div>Status</div>
-                        <div>Duration</div>
-                      </div>
-                    </div>
-                    <div id="section-table" class="divide-y">
-                      \${allSections.map((section, index) => \`
-                        <div id="row-\${index + 1}" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
-                          <div class="font-medium">\${section}</div>
-                          <div id="status-\${index + 1}">
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">
-                              Queued
-                            </span>
-                          </div>
-                          <div id="time-\${index + 1}" class="text-gray-400 text-xs">--</div>
-                        </div>
-                      \`).join('')}
-                    </div>
-                  </div>
-                \`;
+                // Sections table is now hardcoded in HTML - no need to create it here
               }
               
-              const progressCounter = document.getElementById('progress-counter');
+              // No need for progress counter since it's not in the hardcoded table
               
               if (progress.status === 'processing') {
                 // Start timer for this section
@@ -303,8 +337,7 @@ app.get('/', (c) => {
                   timeElement.className = 'text-green-600 text-xs font-medium';
                 }
                 
-                // Update progress counter
-                progressCounter.textContent = \`\${completedSections.length}/\${totalSections}\`;
+                // Progress counter removed since table is now hardcoded
               } else if (progress.status === 'finished') {
                 // Stop timer and show completion
                 clearInterval(timerInterval);
