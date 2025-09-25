@@ -186,7 +186,7 @@ app.get('/', (c) => {
             timerElement.textContent = \`\${elapsed}s\`;
           }, 1000);
           
-          // Start chat session with this order - wait for real progress
+          // Start chat session to initialize, then connect to streaming
           fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -194,21 +194,63 @@ app.get('/', (c) => {
               message: \`I want to appeal the order: \${orderKey}\`, 
               sessionId 
             })
-          }).then(response => response.json())
-            .then(data => {
-              // Stop timer
-              clearInterval(timerInterval);
-              const totalTime = Math.floor((Date.now() - startTime) / 1000);
+          }).then(() => {
+            // Connect to streaming endpoint for real-time progress
+            const eventSource = new EventSource(\`/api/chat/stream/\${sessionId}\`);
+            
+            eventSource.onmessage = function(event) {
+              const progress = JSON.parse(event.data);
               
-              // Show actual response from backend with completion time
+              // Update the display with real progress
+              if (progress.status === 'processing') {
+                // Show current step being processed
+                appealDiv.innerHTML = \`
+                  <div class="border-l-4 border-green-500 pl-4 mb-6">
+                    <h3 class="font-bold text-lg mb-2">Selected Order</h3>
+                    <p class="font-medium">\${filename}</p>
+                    <p class="text-sm text-gray-600">Court: \${court}</p>
+                  </div>
+                  <div class="bg-blue-50 p-4 rounded-lg mb-4">
+                    <div class="animate-pulse">\${progress.message}</div>
+                    <div class="text-xs text-blue-600 mt-2">
+                      ⏱️ Working for: <span id="timer">\${Math.floor((Date.now() - startTime) / 1000)}s</span>
+                      | Step \${progress.step}/\${progress.total}
+                    </div>
+                  </div>
+                \`;
+              } else if (progress.status === 'completed') {
+                // Add completed step to list
+                appealDiv.innerHTML += \`
+                  <div class="bg-green-50 p-2 rounded border border-green-200 mb-1">
+                    \${progress.message}
+                  </div>
+                \`;
+              } else if (progress.status === 'finished') {
+                // Stop timer and show completion
+                clearInterval(timerInterval);
+                const totalTime = Math.floor((Date.now() - startTime) / 1000);
+                eventSource.close();
+                
+                appealDiv.innerHTML += \`
+                  <div class="bg-green-100 p-4 rounded-lg border border-green-300 mt-4">
+                    <h3 class="font-bold text-green-800 mb-2">✅ Completed in \${totalTime}s</h3>
+                    <p class="text-sm text-green-700">Please provide your appellant details to finalize.</p>
+                  </div>
+                \`;
+              }
+            };
+            
+            eventSource.onerror = function() {
+              clearInterval(timerInterval);
+              eventSource.close();
               appealDiv.innerHTML += \`
-                <div class="bg-white border rounded-lg p-4">
-                  <h3 class="font-bold mb-2">📋 Appeal Status</h3>
-                  <div class="text-xs text-green-600 mb-2">✅ Completed in \${totalTime}s</div>
-                  <div class="prose prose-sm">\${data.response.replace(/\\n/g, '<br>')}</div>
+                <div class="bg-red-50 p-4 rounded-lg border border-red-200 mt-4">
+                  <h3 class="font-bold text-red-800 mb-2">❌ Error</h3>
+                  <p class="text-sm text-red-700">Connection lost. Please refresh and try again.</p>
                 </div>
               \`;
-            });
+            };
+          });
         }
         
         function showN161Progress(appealDiv, filename) {
