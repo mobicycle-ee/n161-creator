@@ -82,8 +82,8 @@ app.get('/', (c) => {
               <div class="bg-gray-50 px-4 py-2 border-b">
                 <div class="grid grid-cols-3 gap-4 text-sm font-medium text-gray-700">
                   <div class="w-full">Section</div>
-                  <div>Status</div>
-                  <div>Duration</div>
+                  <div class="max-w-2xl">Status</div>
+                  <div class="max-w-xl">Duration</div>
                 </div>
               </div>
               <div id="section-table" class="divide-y">
