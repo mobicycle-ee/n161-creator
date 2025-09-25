@@ -23,17 +23,18 @@ app.get('/', (c) => {
       <script src="https://cdn.tailwindcss.com"></script>
     </head>
     <body class="bg-gray-50 min-h-screen">
-      <div class="max-w-2xl mx-auto p-6">
-        <div class="bg-white rounded-xl shadow-lg p-8">
-          <h1 class="text-3xl font-bold text-blue-600 mb-2">⚖️ N161 Appeal Creator</h1>
-          <p class="text-gray-600 mb-8">Find your court order and create a professional appeal</p>
+      <div class="max-w-7xl mx-auto p-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
-          <div class="mb-8">
-            <h2 class="text-lg font-semibold mb-4">📅 Browse Court Orders by Year</h2>
+          <!-- Column 1: Selection & Chat -->
+          <div class="bg-white rounded-xl shadow-lg p-6">
+            <h1 class="text-2xl font-bold text-blue-600 mb-2">⚖️ N161 Appeal Creator</h1>
+            <p class="text-gray-600 mb-6">Find your court order and create an appeal</p>
+            
             <div class="mb-6">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Select Year</label>
-              <select id="year" onchange="loadOrdersForYear()" class="w-full p-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-lg">
-                <option value="">Choose a year to see all orders...</option>
+              <h2 class="text-lg font-semibold mb-3">📅 Browse Court Orders</h2>
+              <select id="year" onchange="loadOrdersForYear()" class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none">
+                <option value="">Choose a year...</option>
                 <option value="2025">2025</option>
                 <option value="2024">2024</option>
                 <option value="2023">2023</option>
@@ -43,34 +44,48 @@ app.get('/', (c) => {
                 <option value="2019">2019</option>
               </select>
             </div>
-          </div>
-          
-          <div id="results" class="mb-8 hidden">
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div id="results-content"></div>
+            
+            <div id="results" class="mb-6 hidden">
+              <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 max-h-64 overflow-y-auto">
+                <div id="results-content"></div>
+              </div>
+            </div>
+            
+            <div class="text-center text-gray-500 mb-4">— or —</div>
+            
+            <div class="mb-4">
+              <p class="font-medium mb-2">💬 Chat with AI</p>
+              <form id="chat-form">
+                <div class="flex gap-2">
+                  <input type="text" id="message" 
+                         class="flex-1 p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" 
+                         placeholder="e.g., 3 September 2025">
+                  <button type="submit" 
+                          class="bg-green-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-green-700">
+                    Send
+                  </button>
+                </div>
+              </form>
+            </div>
+            
+            <div id="chat" class="space-y-3 max-h-96 overflow-y-auto">
+              <div class="bg-blue-50 p-3 rounded-lg text-sm">
+                <p class="text-gray-600">Select an order above or tell me the date to get started.</p>
+              </div>
             </div>
           </div>
           
-          <div class="text-center text-gray-500 mb-6">— or —</div>
-          
-          <div id="chat" class="space-y-4 mb-6">
-            <div class="bg-blue-50 p-4 rounded-lg">
-              <p class="font-medium mb-2">💬 Chat with AI Assistant</p>
-              <p class="text-sm text-gray-600">Just tell me the date of your order (e.g., "3 September 2025") and I'll help you create your appeal.</p>
+          <!-- Column 2: Appeal Generation Results -->
+          <div class="bg-white rounded-xl shadow-lg p-6">
+            <h2 class="text-2xl font-bold text-green-600 mb-2">📄 Appeal Generation</h2>
+            <div id="appeal-content" class="text-gray-500">
+              <div class="text-center py-8">
+                <div class="text-4xl mb-4">⚖️</div>
+                <p>Select a court order to begin generating your N161 appeal</p>
+              </div>
             </div>
           </div>
           
-          <form id="chat-form">
-            <div class="flex gap-3">
-              <input type="text" id="message" 
-                     class="flex-1 p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-lg" 
-                     placeholder="e.g., 3 September 2025">
-              <button type="submit" 
-                      class="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors">
-                Send
-              </button>
-            </div>
-          </form>
         </div>
       </div>
       
@@ -135,10 +150,27 @@ app.get('/', (c) => {
         }
         
         function startAppeal(orderKey) {
+          const filename = orderKey.split('/').pop();
+          const court = orderKey.split('/')[0]?.replace('orders_', '');
+          
+          // Show selected order in chat column
           const chatDiv = document.getElementById('chat');
           chatDiv.innerHTML += \`
-            <div class="bg-gray-100 p-3 rounded-lg ml-8">
-              Selected order: \${orderKey.split('/').pop()}
+            <div class="bg-gray-100 p-3 rounded-lg">
+              ✅ Selected: \${filename}
+            </div>
+          \`;
+          
+          // Show appeal generation in column 2
+          const appealDiv = document.getElementById('appeal-content');
+          appealDiv.innerHTML = \`
+            <div class="border-l-4 border-green-500 pl-4 mb-6">
+              <h3 class="font-bold text-lg mb-2">Selected Order</h3>
+              <p class="font-medium">\${filename}</p>
+              <p class="text-sm text-gray-600">Court: \${court}</p>
+            </div>
+            <div class="bg-blue-50 p-4 rounded-lg mb-4">
+              <div class="animate-pulse">🤖 Analyzing order for appeal grounds...</div>
             </div>
           \`;
           
@@ -152,12 +184,87 @@ app.get('/', (c) => {
             })
           }).then(response => response.json())
             .then(data => {
-              chatDiv.innerHTML += \`
-                <div class="bg-blue-50 p-3 rounded-lg mr-8">
-                  \${data.response}
-                </div>
-              \`;
+              // Show N161 generation progress
+              if (data.response.includes('Starting N161 appeal generation')) {
+                showN161Progress(appealDiv, filename);
+              } else {
+                appealDiv.innerHTML += \`
+                  <div class="bg-white border rounded-lg p-4">
+                    <h3 class="font-bold mb-2">📋 Next Steps</h3>
+                    <div class="prose prose-sm">\${data.response.replace(/\\n/g, '<br>')}</div>
+                  </div>
+                \`;
+              }
             });
+        }
+        
+        function showN161Progress(appealDiv, filename) {
+          const sections = [
+            { name: 'Finding blank N161 form', icon: '🔍' },
+            { name: 'Section 1: Case Details and Parties', icon: '📝' },
+            { name: 'Section 2: Nature of Appeal', icon: '📝' },
+            { name: 'Section 3: Legal Representation', icon: '📝' },
+            { name: 'Section 4: Permission to Appeal', icon: '📝' },
+            { name: 'Section 5: Details of Order Being Appealed', icon: '📝' },
+            { name: 'Section 6: Grounds of Appeal', icon: '📝' },
+            { name: 'Section 7: Skeleton Argument', icon: '📝' },
+            { name: 'Section 8: Aarhus Convention Claims', icon: '📝' },
+            { name: 'Section 9: Relief Sought', icon: '📝' },
+            { name: 'Section 10: Other Applications', icon: '📝' },
+            { name: 'Section 11: Evidence and Supporting Documents', icon: '📝' },
+            { name: 'Section 13: Supporting Documents List', icon: '📝' },
+            { name: 'Section 14: Statement of Truth', icon: '📝' },
+            { name: 'Analyzing for void order potential', icon: '🔍' },
+            { name: 'Generating supporting documents', icon: '📄' }
+          ];
+          
+          appealDiv.innerHTML = \`
+            <div class="border-l-4 border-blue-500 pl-4 mb-6">
+              <h3 class="font-bold text-lg mb-2">N161 Generation Progress</h3>
+              <p class="font-medium">\${filename}</p>
+            </div>
+            <div id="progress-container" class="space-y-2">
+            </div>
+          \`;
+          
+          const progressContainer = document.getElementById('progress-container');
+          
+          // Show progress steps one by one
+          sections.forEach((section, index) => {
+            setTimeout(() => {
+              const stepDiv = document.createElement('div');
+              stepDiv.className = 'flex items-center space-x-3 p-2 bg-green-50 border border-green-200 rounded animate-pulse';
+              stepDiv.innerHTML = \`
+                <span class="text-lg">\${section.icon}</span>
+                <span class="text-sm font-medium">\${section.name}...</span>
+                <span class="ml-auto text-green-600 text-xs">✓ Complete</span>
+              \`;
+              progressContainer.appendChild(stepDiv);
+              
+              // Remove animation after a moment
+              setTimeout(() => {
+                stepDiv.classList.remove('animate-pulse');
+                stepDiv.classList.add('bg-green-100');
+              }, 800);
+              
+            }, index * 400); // 400ms delay between each step
+          });
+          
+          // Show completion message after all steps
+          setTimeout(() => {
+            appealDiv.innerHTML += \`
+              <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 mt-4">
+                <h3 class="font-bold text-blue-800 mb-2">✅ N161 Appeal Generation Complete!</h3>
+                <p class="text-sm text-blue-700">Please provide your appellant details to finalize the form:</p>
+                <div class="mt-2 space-y-1 text-sm">
+                  <div>📋 <strong>Your Name:</strong></div>
+                  <div>📍 <strong>Your Address:</strong></div>
+                  <div>📞 <strong>Phone Number:</strong></div>
+                  <div>✉️ <strong>Email Address:</strong></div>
+                </div>
+              </div>
+            \`;
+          }, sections.length * 400 + 1000);
         }
         
         document.getElementById('chat-form').addEventListener('submit', async (e) => {
@@ -177,15 +284,27 @@ app.get('/', (c) => {
             });
             
             const data = await response.json();
-            chatDiv.innerHTML += \`<div class="bg-blue-50 p-3 rounded-lg mr-8">\${data.response}</div>\`;
+            chatDiv.innerHTML += \`<div class="bg-blue-50 p-3 rounded-lg">\${data.response}</div>\`;
+            
+            // If this looks like appeal generation, show in column 2
+            if (data.response.includes('✅ Perfect!') || data.response.includes('appeal')) {
+              const appealDiv = document.getElementById('appeal-content');
+              appealDiv.innerHTML = \`
+                <div class="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <h3 class="font-bold mb-2">🎯 Appeal Status</h3>
+                  <div class="prose prose-sm">\${data.response.replace(/\\n/g, '<br>')}</div>
+                </div>
+              \`;
+            }
             
             if (data.documents) {
-              chatDiv.innerHTML += \`
-                <div class="bg-green-50 p-4 rounded-lg border border-green-200">
-                  <h3 class="font-semibold mb-2">Your documents are ready:</h3>
+              const appealDiv = document.getElementById('appeal-content');
+              appealDiv.innerHTML += \`
+                <div class="bg-green-100 p-4 rounded-lg border border-green-300 mt-4">
+                  <h3 class="font-semibold mb-2">📄 Your Documents Are Ready:</h3>
                   <div class="space-y-2">
                     \${data.documents.map(doc => 
-                      \`<a href="\${doc.url}" class="block text-blue-600 hover:underline">📄 \${doc.name}</a>\`
+                      \`<a href="\${doc.url}" class="block text-green-700 hover:underline font-medium">📄 \${doc.name}</a>\`
                     ).join('')}
                   </div>
                 </div>
