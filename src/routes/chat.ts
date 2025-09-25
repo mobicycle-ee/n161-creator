@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { Env, Order } from '../types';
 import { AIService } from '../services/aiService';
+import { BookService } from '../services/bookService';
 
 interface ChatSession {
   sessionId: string;
@@ -15,6 +16,7 @@ export const chatRoutes = new Hono<{ Bindings: Env }>();
 chatRoutes.post('/', async (c) => {
   const { message, sessionId } = await c.req.json();
   const aiService = new AIService(c.env);
+  const bookService = new BookService(c.env);
   
   // Get or create session
   let session: ChatSession = await c.env.APPEALS.get(sessionId, 'json') || {
@@ -51,15 +53,32 @@ chatRoutes.post('/', async (c) => {
             session.stage = 'analyzing';
             response = `I found your case ${parsedInfo.caseNumber}. Let me analyze the order for potential appeal grounds...`;
             
-            // Start analysis
+            // Start analysis with book reference
             const analysis = await aiService.analyzeOrderForAppeal(order);
+            
+            // Check books for relevant void order information
+            const voidContent = await bookService.getRelevantContent('void orders');
+            const appealContent = await bookService.getRelevantContent('appeals');
+            
+            // Enhance analysis with book knowledge
+            if (voidContent.length > 0) {
+              analysis.bookReferences = voidContent;
+              analysis.voidPossibility = true;
+            }
+            
             session.context.analysis = analysis;
+            session.context.bookReferences = [...voidContent, ...appealContent];
             
             response += `\n\nI've identified ${analysis.grounds.length} potential grounds of appeal:\n`;
             analysis.grounds.forEach((ground, i) => {
               response += `${i + 1}. ${ground}\n`;
             });
-            response += '\nPlease provide your appellant details (name, address, contact information) to proceed with generating the documents.';
+            
+            if (analysis.voidPossibility) {
+              response += `\n\n⚠️ IMPORTANT: Based on my analysis and reference to our legal database, this order may be VOID AB INITIO (void from the beginning). This means it may have no legal effect whatsoever. See Book 4 of our legal series for detailed information on void orders.`;
+            }
+            
+            response += '\n\nPlease provide your appellant details (name, address, contact information) to proceed with generating the documents.';
           } else {
             // Create order from extracted info
             session.orderDetails = {
@@ -158,6 +177,36 @@ chatRoutes.post('/', async (c) => {
   }
 
   return c.json({ response, documents });
+});
+
+// Book search endpoint
+chatRoutes.post('/search', async (c) => {
+  const { query } = await c.req.json();
+  const bookService = new BookService(c.env);
+  
+  try {
+    const results = await bookService.searchBooks(query);
+    return c.json({ results });
+  } catch (error) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Get book content endpoint
+chatRoutes.get('/book/:bookNumber/chapter/:chapterNumber', async (c) => {
+  const bookNumber = parseInt(c.req.param('bookNumber'));
+  const chapterNumber = parseInt(c.req.param('chapterNumber'));
+  const bookService = new BookService(c.env);
+  
+  try {
+    const content = await bookService.getBookContent(bookNumber, chapterNumber);
+    if (!content) {
+      return c.json({ error: 'Chapter not found' }, 404);
+    }
+    return c.json({ content });
+  } catch (error) {
+    return c.json({ error: error.message }, 500);
+  }
 });
 
 // Document download endpoint

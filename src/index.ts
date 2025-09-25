@@ -4,6 +4,7 @@ import type { Env } from './types';
 import { AIService } from './services/aiService';
 import { ordersRoutes } from './routes/orders';
 import { chatRoutes } from './routes/chat';
+import { agentRoutes } from './routes/agents';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -101,5 +102,6 @@ app.get('/', (c) => {
 
 app.route('/api/orders', ordersRoutes);
 app.route('/api/chat', chatRoutes);
+app.route('/api/agents', agentRoutes);
 
 export default app;

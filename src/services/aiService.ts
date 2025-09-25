@@ -1,10 +1,13 @@
 import type { Env, Order } from '../types';
+import { PDFReferenceService } from './pdfReferenceService';
 
 export class AIService {
   private env: Env;
+  private pdfService: PDFReferenceService;
 
   constructor(env: Env) {
     this.env = env;
+    this.pdfService = new PDFReferenceService(env);
   }
 
   async analyzeOrderForAppeal(order: Order): Promise<{
@@ -42,12 +45,23 @@ export class AIService {
   }
 
   async generateN161Form(order: Order, appellantDetails: any): Promise<string> {
-    const prompt = `Generate N161 Notice of Appeal form content for:
+    // First, try to find similar successful cases
+    const similarCases = await this.pdfService.fetchSimilarCases(
+      order.caseNumber,
+      ['judicial review', 'procedural error'] // Example grounds
+    );
+
+    let prompt = `Generate N161 Notice of Appeal form content for:
       Appellant: ${appellantDetails.name}
       Case: ${order.caseNumber}
-      Original Decision Date: ${order.orderDate}
-      
-      Include all standard N161 sections. Format as structured text.`;
+      Original Decision Date: ${order.orderDate}`;
+
+    if (similarCases.length > 0) {
+      prompt += `\n\nReference these similar successful appeals: ${JSON.stringify(similarCases)}
+      Use similar language patterns and structure that worked in these cases.`;
+    }
+
+    prompt += `\n\nInclude all standard N161 sections. Format as structured text.`;
 
     const response = await this.env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
       prompt,

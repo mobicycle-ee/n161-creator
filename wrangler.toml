@@ -2,6 +2,10 @@ name = "n161-creator"
 main = "src/index.ts"
 compatibility_date = "2025-09-23"
 
+# wrangler.toml (wrangler v3.88.0^)
+[observability.logs]
+enabled = true
+
 [ai]
 binding = "AI"
 
@@ -10,9 +14,36 @@ binding = "LEGAL_DB"
 database_name = "legal-applications-db"
 database_id = "4ef47613-2b51-4f83-a841-63abefbc1c19"
 
+[[d1_databases]]
+binding = "BOOK_0_DEMOCRACY"
+database_name = "book_0_democracy_is_dead"
+database_id = "9a09f8e0-c866-4660-9089-d4de2a81326f"
+
+[[d1_databases]]
+binding = "BOOK_1_LEGAL_SURVIVAL"
+database_name = "book_1_legal_survival_guide"
+database_id = "128e6262-1503-4ac1-987b-ca4dc2de5240"
+
+[[d1_databases]]
+binding = "BOOK_2_INTERNATIONAL"
+database_name = "book_2_britain_and_international_law"
+database_id = "ffc03daf-7bef-43fd-a2ce-cd7b22acb415"
+
+[[d1_databases]]
+binding = "BOOK_3_DOMESTIC"
+database_name = "book_3_britain_and_domestic_law"
+database_id = "c454adc5-a345-4289-a935-9ef1db284246"
+
+[[d1_databases]]
+binding = "BOOK_4_VOID"
+database_name = "book_4_void_ab_initio"
+database_id = "b5f6a65a-7b66-4228-8ae5-fb8af5dd0cc6"
+
+[[d1_databases]]
+binding = "BOOK_5_WHISTLEBLOWERS"
+database_name = "book_5_the_last_whistleblowers"
+database_id = "b884868a-ac47-43d6-a6d1-baa9efc081ed"
+
 [[kv_namespaces]]
 binding = "APPEALS"
 id = "1c6c3a4156494b01a6f509b83dec4a50"
-
-[env.production]
-name = "n161-creator-production"

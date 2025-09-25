@@ -2,6 +2,13 @@ export interface Env {
   AI: any;
   ORDERS: KVNamespace;
   APPEALS: KVNamespace;
+  LEGAL_DB: D1Database;
+  BOOK_0_DEMOCRACY: D1Database;
+  BOOK_1_LEGAL_SURVIVAL: D1Database;
+  BOOK_2_INTERNATIONAL: D1Database;
+  BOOK_3_DOMESTIC: D1Database;
+  BOOK_4_VOID: D1Database;
+  BOOK_5_WHISTLEBLOWERS: D1Database;
 }
 
 export interface Order {
@@ -9,8 +16,9 @@ export interface Order {
   caseNumber: string;
   courtName: string;
   judge: string;
-  dateOfOrder: string;
+  orderDate: string;  // Changed from dateOfOrder for consistency
   orderType: string;
+  decision: string;   // Added decision field
   parties: {
     claimant: string;
     defendant: string;
