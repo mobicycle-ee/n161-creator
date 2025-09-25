@@ -23,7 +23,7 @@ app.get('/', (c) => {
       <script src="https://cdn.tailwindcss.com"></script>
     </head>
     <body class="bg-gray-50 min-h-screen">
-      <div class="max-w-7xl mx-auto p-6">
+      <div class="mx-auto p-6">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
           <!-- Column 1: Selection & Chat -->
@@ -81,7 +81,7 @@ app.get('/', (c) => {
             <div class="bg-white border rounded-lg overflow-hidden">
               <div class="bg-gray-50 px-4 py-2 border-b">
                 <div class="grid grid-cols-3 gap-4 text-sm font-medium text-gray-700">
-                  <div>Section</div>
+                  <div class="w-full">Section</div>
                   <div>Status</div>
                   <div>Duration</div>
                 </div>
