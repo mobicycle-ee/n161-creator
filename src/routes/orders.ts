@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import type { Env, Order } from '../types';
+import { CaseDetailsAgent } from '../agents/section01_caseDetailsAgent';
 
 export const ordersRoutes = new Hono<{ Bindings: Env }>();
 
@@ -204,6 +205,45 @@ ordersRoutes.post('/:orderId/start-appeal', async (c) => {
     return c.json({
       success: false,
       error: 'Failed to start appeal'
+    }, 500);
+  }
+});
+
+ordersRoutes.post('/extract-parties', async (c) => {
+  try {
+    const { orderKey } = await c.req.json();
+
+    if (!orderKey || typeof orderKey !== 'string') {
+      return c.json({
+        success: false,
+        error: 'orderKey is required'
+      }, 400);
+    }
+
+    const agent = new CaseDetailsAgent(c.env);
+    const result = await agent.populateSection1(orderKey, () => {});
+
+    if (!result || result.status === 'needs_input') {
+      return c.json({
+        success: false,
+        error: 'Unable to extract parties from order. Manual input required.',
+        requiredFields: result?.requiredFields || []
+      }, 422);
+    }
+
+    return c.json({
+      success: true,
+      parties: result.parties || [],
+      caseDetails: result.caseDetails || {},
+      contactDetails: result.contactDetails || {},
+      systemicWarnings: result.systemicWarnings || [],
+      requiredActions: result.requiredActions || []
+    });
+  } catch (error: any) {
+    console.error('Failed to extract parties:', error);
+    return c.json({
+      success: false,
+      error: error?.message || 'Failed to extract parties from order'
     }, 500);
   }
 });

@@ -8,6 +8,93 @@ export class AppealDetailsAgent {
     this.bookService = new BookService(env);
   }
   
+  async analyzeAppealType(section1Results: any, sendUpdate: (msg: string) => void) {
+    sendUpdate('📊 Analyzing order type from case details...');
+    
+    const orderDetails = section1Results.caseDetails;
+    const parties = section1Results.parties;
+    
+    sendUpdate(`Order: ${orderDetails.orderType || 'Possession Order'}`);
+    sendUpdate(`Date: ${orderDetails.orderDate}`);
+    
+    // Determine appeal type
+    sendUpdate('🔍 Determining appeal type...');
+    const appealType = await this.determineAppealTypeFromOrder(orderDetails);
+    sendUpdate(`✓ Type: ${appealType}`);
+    
+    // Determine route
+    sendUpdate('🛤️ Determining appeal route...');
+    const appealRoute = await this.determineAppealRoute(orderDetails);
+    sendUpdate(`✓ Route: ${appealRoute}`);
+    
+    // Calculate deadline
+    sendUpdate('⏰ Calculating appeal deadline...');
+    const deadline = this.calculateDeadline(orderDetails.orderDate);
+    sendUpdate(`✓ Deadline: ${deadline}`);
+    
+    // Check strategic considerations
+    sendUpdate('📚 Checking strategic guidance from legal books...');
+    const strategicContent = await this.bookService.getRelevantContent('appeals strategy');
+    sendUpdate(`✓ Found ${strategicContent.length} strategic precedents`);
+    
+    const result = {
+      section: 'Section 2: Nature of Appeal',
+      appealType: appealType,
+      route: appealRoute,
+      deadline: deadline,
+      targetCourt: 'High Court, Queen\'s Bench Division',
+      permissionRequired: true,
+      strategicConsiderations: strategicContent.slice(0, 2),
+      output: this.generateSection2Output(appealType, appealRoute, deadline)
+    };
+    
+    sendUpdate('✅ Section 2 Complete: Appeal route determined');
+    sendUpdate(`📊 Result: ${appealType} - Deadline ${deadline}`);
+    
+    return result;
+  }
+  
+  private async determineAppealTypeFromOrder(orderDetails: any): Promise<string> {
+    if (orderDetails.orderType?.includes('Possession')) {
+      return 'Appeal against Final Possession Order';
+    } else if (orderDetails.orderType?.includes('Injunction')) {
+      return 'Appeal against Injunction Order';
+    } else if (orderDetails.orderType?.includes('Case Management')) {
+      return 'Appeal against Case Management Decision';
+    }
+    return 'Appeal against Final Order';
+  }
+  
+  private async determineAppealRoute(orderDetails: any): Promise<string> {
+    // First appeal from County Court goes to High Court
+    if (orderDetails.courtName?.includes('County Court')) {
+      return 'First Appeal - County Court to High Court';
+    } else if (orderDetails.courtName?.includes('High Court')) {
+      return 'Second Appeal - High Court to Court of Appeal';
+    }
+    return 'First Appeal';
+  }
+  
+  private calculateDeadline(orderDate: string): string {
+    const date = new Date(orderDate.replace(/\//g, '-'));
+    date.setDate(date.getDate() + 21); // Standard 21 day deadline
+    return date.toLocaleDateString('en-GB');
+  }
+  
+  private generateSection2Output(appealType: string, route: string, deadline: string): string {
+    return `
+SECTION 2: NATURE OF APPEAL
+
+Appeal Type: ${appealType}
+Appeal Route: ${route}
+Target Court: High Court, Queen's Bench Division
+Permission Required: Yes
+Deadline for Filing: ${deadline}
+
+The Appellant seeks permission to appeal and appeals against the order on the grounds set out in Section 6 below.
+    `.trim();
+  }
+  
   async populateSection2(orderDetails: any, context?: any) {
     // Determine appeal type and route
     const appealType = this.determineAppealType(orderDetails);
