@@ -216,12 +216,12 @@ Or tell me:
         
       case 'analyzing':
         // Check if user is selecting a party number
-        const partyNumber = parseInt(message.trim());
-        const parties = session.context.parties || [];
+        const partyNum = parseInt(message.trim());
+        const partiesList = session.context.parties || [];
         
-        if (partyNumber && partyNumber > 0 && partyNumber <= parties.length) {
+        if (partyNum && partyNum > 0 && partyNum <= partiesList.length) {
           // User selected a party from the list
-          const selectedParty = parties[partyNumber - 1];
+          const selectedParty = partiesList[partyNum - 1];
           session.appellantDetails = {
             name: selectedParty.name,
             address: selectedParty.address,
@@ -275,7 +275,7 @@ Or tell me:
             { name: 'Evidence List', url: `/api/documents/${docIds.evidence}` }
           ];
         } else {
-          response = 'Please provide your full name and address to continue with the appeal documents.';
+          response = `Please select a valid party number (1-${partiesList.length}) or type "manual" to enter details yourself.`;
         }
         break;
         

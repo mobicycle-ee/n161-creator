@@ -89,7 +89,9 @@ app.get('/', (c) => {
               <div id="section-table" class="divide-y">
                 <div id="row-1" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
                   <div class="font-medium">Finding blank N161 form</div>
-                  <div id="status-1"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Queued</span></div>
+                  <div id="status-1">
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Queued</span>
+                  </div>
                   <div id="time-1" class="text-gray-400 text-xs">--</div>
                 </div>
                 <div id="row-2" class="grid grid-cols-3 gap-4 px-4 py-2 text-sm">
