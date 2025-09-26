@@ -58,11 +58,11 @@ export class ReliefSoughtAgent {
   
   private async determineReliefOptions(orderDetails: any, grounds: any[]): Promise<any> {
     const options = {
-      primary: [],
-      interim: [],
-      consequential: [],
-      costs: [],
-      alternative: []
+      primary: [] as string[],
+      interim: [] as string[],
+      consequential: [] as string[],
+      costs: [] as string[],
+      alternative: [] as string[]
     };
     
     // Primary relief based on grounds

@@ -66,10 +66,10 @@ export class SupportingDocumentsAgent {
   
   private createDocumentChecklist(orderDetails: any, grounds: any[]): any {
     const checklist = {
-      mandatory: [],
-      recommended: [],
-      optional: [],
-      special: []
+      mandatory: [] as any[],
+      recommended: [] as any[],
+      optional: [] as any[],
+      special: [] as any[]
     };
     
     // Mandatory documents

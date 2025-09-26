@@ -2,18 +2,16 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import type { Env } from './types';
 import { AIService } from './services/aiService';
-import { authMiddleware } from './middleware/auth';
-import { ordersRoutes } from './routes/orders';
-import { chatRoutes } from './routes/chat';
-import { agentRoutes } from './routes/agents';
-import { appealSimpleRoutes } from './routes/appealSimple';
+import { createOrderSearchHandler } from './steps/section00_order';
+import { N161Orchestrator } from './steps/orchestrator';
+import { QUESTION_SETS } from './questions/questionSets';
 
 const app = new Hono<{ Bindings: Env }>();
 
 app.use('/*', cors());
-app.use('/*', authMiddleware);
 
 app.get('/', (c) => {
+  const questionSetsJson = JSON.stringify(QUESTION_SETS);
   return c.html(`
     <!DOCTYPE html>
     <html>
@@ -32,57 +30,6 @@ app.get('/', (c) => {
           <div class="bg-white rounded-xl shadow-lg p-6">
             <h2 class="text-xl font-bold text-orange-700 mb-4">📅 Select Court Order</h2>
             
-            <!-- Party Classification Section -->
-            <div id="party-selection" class="hidden mb-6 bg-orange-50 border-2 border-orange-600 rounded-lg p-4">
-              <h3 class="font-bold text-orange-800 mb-3">📋 Party Classification</h3>
-              <p class="text-sm text-gray-600 mb-3">Select the role for each party from the court order:</p>
-              <div id="party-checkboxes" class="space-y-4">
-                <!-- Parties will be populated here dynamically -->
-              </div>
-              <button onclick="confirmPartySelection()" class="mt-4 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm">
-                ✓ Confirm Selection
-              </button>
-            </div>
-            
-            <!-- Contact Details Section -->
-            <div id="contact-details" class="hidden mb-6 bg-red-50 border-2 border-red-700 rounded-lg p-4">
-              <h3 class="font-bold text-red-800 mb-3">📬 Contact Details</h3>
-              <div class="space-y-3 text-sm">
-                <div class="border-b pb-2">
-                  <strong class="text-gray-700">Appellant:</strong>
-                  <div class="ml-4 mt-1 text-gray-600">
-                    <div>Address: <span id="appellant-address">-</span></div>
-                    <div>Email: <span id="appellant-email">-</span></div>
-                    <div>Phone: <span id="appellant-phone">-</span></div>
-                  </div>
-                </div>
-                <div class="border-b pb-2">
-                  <strong class="text-gray-700">Respondent:</strong>
-                  <div class="ml-4 mt-1 text-gray-600">
-                    <div>Address: <span id="respondent-address">-</span></div>
-                    <div>Email: <span id="respondent-email">-</span></div>
-                  </div>
-                </div>
-                <div>
-                  <strong class="text-gray-700">Court:</strong>
-                  <div class="ml-4 mt-1 text-gray-600">
-                    <div>Address: <span id="court-address">-</span></div>
-                    <div>Email: <span id="court-email">-</span></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Appellant Information Display -->
-            <div id="appellant-info" class="hidden mb-6 bg-blue-50 border-2 border-blue-900 rounded-lg p-4">
-              <h3 class="font-bold text-blue-900 mb-3">👤 Appellant Information</h3>
-              <div class="space-y-2 text-sm">
-                <div><strong>Name:</strong> <span id="appellant-name" class="text-gray-700">-</span></div>
-                <div><strong>Case:</strong> <span id="appellant-case" class="text-gray-700">-</span></div>
-                <div><strong>Order Date:</strong> <span id="appellant-date" class="text-gray-700">-</span></div>
-                <div><strong>Judge:</strong> <span id="appellant-judge" class="text-gray-700">-</span></div>
-              </div>
-            </div>
             
             <div class="mb-6">
               <h2 class="text-lg font-semibold mb-3">📅 Browse Court Orders</h2>
@@ -99,7 +46,7 @@ app.get('/', (c) => {
             </div>
             
             <div id="results" class="mb-6 hidden">
-              <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 max-h-64 overflow-y-auto">
+              <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 h-auto overflow-y-auto">
                 <div id="results-content"></div>
               </div>
             </div>
@@ -236,9 +183,12 @@ app.get('/', (c) => {
             </div>
           </div>
           
-          <!-- Column 3: Agent Discussion -->
+          <!-- Column 3: Party Information -->
           <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full">
-            <h2 class="text-xl font-bold text-red-700 mb-4">💬 Agent Discussion</h2>
+            <h2 class="text-xl font-bold text-red-700 mb-4">👥 Party Information</h2>
+            
+            
+            <h3 class="text-lg font-bold text-red-700 mb-4 border-t pt-4">💬 Agent Discussion</h3>
             <div class="mb-4">
               <form id="chat-form">
                 <div class="flex gap-2">
@@ -252,6 +202,7 @@ app.get('/', (c) => {
                 </div>
               </form>
             </div>
+            <div id="question-list" class="hidden mb-4 space-y-3"></div>
             <div id="chat" class="flex-1 space-y-3 overflow-y-auto border-t pt-4">
               <div class="bg-blue-50 p-3 rounded-lg text-sm">
                 <p class="text-gray-600">Agent will provide updates here as each section is processed.</p>
@@ -263,9 +214,49 @@ app.get('/', (c) => {
       </div>
       
       <script>
+        const QUESTION_SETS = ${questionSetsJson};
+        const STEP_SECTION_MAP = {
+          '1': 'section1',
+          '2': 'section2',
+          '3': 'section3',
+          '4': 'section4',
+          '5': 'section5',
+          '6': 'section6',
+          '7': 'section7',
+          '8': 'section8',
+          '9': 'section9',
+          '10': 'section10',
+          '11': 'section11',
+          '12': 'section12',
+          '13': 'section13',
+          '14': 'section14'
+        };
         let sessionId = crypto.randomUUID();
         let currentN161Url = '';
         
+        function renderQuestionList(sectionKey) {
+          const container = document.getElementById('question-list');
+          if (!container) return;
+          const section = sectionKey ? QUESTION_SETS[sectionKey] : null;
+          if (!section || !section.questions || section.questions.length === 0) {
+            container.classList.add('hidden');
+            container.innerHTML = '';
+            return;
+          }
+
+          const items = section.questions.map((question, index) => {
+            const label = question.id ? `Q${question.id}` : `Q${index + 1}`;
+            const hintHtml = question.hint ? `<div class="text-xs text-gray-500 mt-1">${question.hint}</div>` : '';
+            return `<li class="space-y-1"><div class="font-medium text-gray-800">${label}</div><div class="text-sm text-gray-700">${question.label}</div>${hintHtml}</li>`;
+          }).join('');
+
+          container.classList.remove('hidden');
+          container.innerHTML = `
+            <div class="font-semibold text-red-700">${section.title}</div>
+            <ol class="list-decimal ml-5 space-y-2">${items}</ol>
+          `;
+        }
+
         function previewN161() {
           const previewDiv = document.getElementById('form-preview');
           const previewFrame = document.getElementById('preview-frame');
@@ -397,21 +388,20 @@ app.get('/', (c) => {
           // Clear chat
           const chatDiv = document.getElementById('chat');
           chatDiv.innerHTML = '<div class="text-gray-500 text-sm">🤖 Agents starting...</div>';
+          renderQuestionList(null);
           
           // Hide completion message
           document.getElementById('completion-message')?.classList.add('hidden');
           
           try {
-            // Call the backend API with SSE
-            const response = await fetch('/api/appeal-simple/process-simple', {
+            // Call the backend API with orchestrator
+            const response = await fetch('/api/n161/generate', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
               },
               body: JSON.stringify({
-                orderKey: orderKey,
-                selectedParties: selectedParties,
-                interestedParties: []
+                orderKey: orderKey
               })
             });
             
@@ -450,6 +440,38 @@ app.get('/', (c) => {
                   try {
                     const data = JSON.parse(line.slice(6));
                     
+                    // Handle orchestrator updates - show in chat
+                    if (data.type === 'update') {
+                      const chatDiv = document.getElementById('chat');
+                      if (chatDiv) {
+                        const messageDiv = document.createElement('div');
+                        messageDiv.className = 'bg-blue-50 p-2 rounded-lg text-sm';
+                        messageDiv.textContent = data.message;
+                        chatDiv.appendChild(messageDiv);
+                        chatDiv.scrollTop = chatDiv.scrollHeight;
+                        const stepMatch = (data.message || '').trim().match(/STEP\s+(\d+):/i);
+                        if (stepMatch) {
+                          const sectionKey = STEP_SECTION_MAP[stepMatch[1]];
+                          if (sectionKey) {
+                            renderQuestionList(sectionKey);
+                          }
+                        }
+                        
+                        // Update section status based on message content
+                        if (data.message.includes('STEP 1:')) {
+                          const statusEl = document.getElementById('status-2');
+                          if (statusEl) {
+                            statusEl.innerHTML = '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800"><span class="w-2 h-2 bg-orange-500 rounded-full mr-1 animate-pulse"></span>Processing</span>';
+                          }
+                        } else if (data.message.includes('Section 1 Complete')) {
+                          const statusEl = document.getElementById('status-2');
+                          if (statusEl) {
+                            statusEl.innerHTML = '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-900"><span class="text-blue-700 mr-1">✓</span>Completed</span>';
+                          }
+                        }
+                      }
+                    }
+                    
                     if (data.type === 'complete') {
                       // Show completion message and links
                       const completionDiv = document.getElementById('completion-message');
@@ -482,12 +504,33 @@ app.get('/', (c) => {
                     } else if (data.section && data.message) {
                       // Update agent discussion in column 3
                       const agentSection = data.section;
-                      chatDiv.innerHTML = \`
-                        <div class="mb-4">
-                          <div class="font-bold text-blue-800 mb-2">🤖 \${agentSection}</div>
-                          <div class="text-sm text-gray-700">\${data.message}</div>
-                        </div>
-                      \`;
+                      
+                      // Check if it's a system stop message
+                      if (agentSection === 'System' && data.message.includes('STOPPING')) {
+                        chatDiv.innerHTML = \`
+                          <div class="mb-4">
+                            <div class="font-bold text-red-600 mb-2">⛔ SYSTEM</div>
+                            <div class="text-lg font-bold text-red-600">\${data.message}</div>
+                            <div class="text-sm text-gray-600 mt-2">Only Section 1 has been processed as requested.</div>
+                          </div>
+                        \`;
+                        // Don't process any further sections
+                        break;
+                      } else {
+                        chatDiv.innerHTML = \`
+                          <div class="mb-4">
+                            <div class="font-bold text-blue-800 mb-2">🤖 \${agentSection}</div>
+                            <div class="text-sm text-gray-700">\${data.message}</div>
+                          </div>
+                        \`;
+                        const sectionMatch = agentSection.match(/Section\s+(\d+)/i);
+                        if (sectionMatch) {
+                          const sectionKey = STEP_SECTION_MAP[sectionMatch[1]];
+                          if (sectionKey) {
+                            renderQuestionList(sectionKey);
+                          }
+                        }
+                      }
                       
                       // Update status table
                       const sectionIndex = sectionMap[agentSection];
@@ -799,12 +842,12 @@ app.get('/', (c) => {
             }
           }
 
-          setTimeout(() => {
-            startAgentProcessing(orderKey, filename, court);
-          }, 1000);
+          // REMOVED: Call to fake startAgentProcessing function
+          // The real orchestrator API call will handle all processing
         }
 
-                function startAgentProcessing(orderKey, filename, court) {
+        // REMOVED: Entire startAgentProcessing function that was bypassing orchestrator
+        /* function startAgentProcessing(orderKey, filename, court) {
           const sections = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
           let sectionTimers = {};
           let completedCount = 0;
@@ -1148,9 +1191,9 @@ app.get('/', (c) => {
               
             }, index * 1500); // Start each section 1.5s apart
           });
-        }
+        } */
         
-        // Test function removed - now using real backend processing
+        // All processing now handled by real backend orchestrator
         
         function unusedTestStreaming() {
           // First show party selection with mock data
@@ -1222,250 +1265,7 @@ app.get('/', (c) => {
             }
           }, 1000);
           
-          // Start processing after 2 seconds
-          setTimeout(() => {
-            // Simulate streaming updates to test the status/duration functionality
-            const sections = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
-            let sectionTimers = {};
-            let completedCount = 0;
-          
-          sections.forEach((step, index) => {
-            setTimeout(() => {
-              // Start processing
-              sectionTimers[step] = Date.now();
-              
-              const statusElement = document.getElementById(\`status-\${step}\`);
-              if (statusElement) {
-                statusElement.innerHTML = \`
-                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800">
-                    <span class="w-2 h-2 bg-orange-500 rounded-full mr-1 animate-pulse"></span>
-                    Processing
-                  </span>
-                \`;
-              }
-              
-              // Add agent message to discussion
-              const chatDiv = document.getElementById('chat');
-              const agentNames = [
-                "Form Finder Agent",
-                "Case Details Agent", 
-                "Appeal Nature Agent",
-                "Legal Representation Agent",
-                "Permission Agent",
-                "Order Details Agent",
-                "Grounds Agent",
-                "Skeleton Argument Agent",
-                "Aarhus Convention Agent",
-                "Relief Agent",
-                "Applications Agent",
-                "Evidence Agent",
-                "Vulnerability Agent",
-                "Documents List Agent",
-                "Statement of Truth Agent",
-                "Void Order Agent",
-                "Document Generator Agent"
-              ];
-              
-              const agentName = agentNames[step-1];
-              console.log(\`\n========================================\`);
-              console.log(\`🤖 \${agentName} STARTING\`);
-              console.log(\`========================================\`);
-              
-              // Simulate detailed agent processing logs
-              const agentLogs = {
-                1: () => {
-                  console.log('📄 Searching for N161 form template...');
-                  console.log('📁 Checking local templates directory...');
-                  console.log('✅ Found N161 template version 2024');
-                  return "Located N161 form template v2024";
-                },
-                2: () => {
-                  console.log('📖 Reading court order PDF...');
-                  console.log('🔍 Extracting party names...');
-                  console.log('  - Claimant: Claimant Ltd');
-                  console.log('  - Defendant 1: Roman House');
-                  console.log('  - Case: K10CL521');
-                  return "Extracted: Roman House (Defendant) vs Claimant Ltd";
-                },
-                3: () => {
-                  console.log('🔍 Analyzing order for appeal type...');
-                  console.log('📝 Checking for procedural issues...');
-                  console.log('⚠️  Found: Procedural irregularity');
-                  console.log('⚠️  Found: Bias concerns');
-                  return "Identified procedural irregularity and bias";
-                },
-                4: () => {
-                  console.log('👤 Checking legal representation status...');
-                  console.log('📋 No solicitor on record');
-                  console.log('✏️  Setting as Litigant in Person');
-                  return "Marked as self-represented (LiP)";
-                },
-                5: () => {
-                  console.log('🔍 Checking permission to appeal status...');
-                  console.log('❌ Permission refused by HHJ Gerald');
-                  console.log('📝 Adding request for reconsideration');
-                  return "Permission refused - requesting reconsideration";
-                },
-                6: () => {
-                  console.log('📋 Extracting order details...');
-                  console.log('  Date: 03/09/2025');
-                  console.log('  Judge: HHJ Gerald');
-                  console.log('  Court: Central London County Court');
-                  console.log('  Case: K10CL521');
-                  return "Order: 03/09/2025, HHJ Gerald, K10CL521";
-                },
-                7: () => {
-                  console.log('⚖️ Identifying grounds for appeal...');
-                  console.log('  Ground 1: Procedural irregularity');
-                  console.log('  Ground 2: Apparent bias');
-                  console.log('  Ground 3: Misdirection on law');
-                  console.log('📚 Referencing legal books for citations...');
-                  return "3 grounds identified with legal citations";
-                },
-                8: () => {
-                  console.log('📝 Drafting skeleton argument...');
-                  console.log('📚 Pulling from Book 4: Void Ab Initio...');
-                  console.log('📚 Pulling from Book 3: Domestic Law...');
-                  console.log('✏️  Creating 15-paragraph skeleton');
-                  return "Skeleton drafted with book references";
-                },
-                9: () => {
-                  console.log('🌍 Checking for environmental aspects...');
-                  console.log('❌ No environmental issues found');
-                  console.log('⏭️  Skipping Aarhus Convention claim');
-                  return "Not applicable - not environmental";
-                },
-                10: () => {
-                  console.log('📋 Determining relief sought...');
-                  console.log('  ✅ Set aside order');
-                  console.log('  ✅ Retrial requested');
-                  console.log('  ✅ Costs reserved');
-                  return "Requesting order be set aside and retried";
-                },
-                11: () => {
-                  console.log('📝 Checking for other applications...');
-                  console.log('❌ No stay required');
-                  console.log('❌ No interim relief needed');
-                  return "No additional applications required";
-                },
-                12: () => {
-                  console.log('📚 Compiling evidence references...');
-                  console.log('  📄 Court order');
-                  console.log('  📄 Previous orders');
-                  console.log('  📄 Correspondence');
-                  return "Evidence bundle compiled";
-                },
-                13: () => {
-                  console.log('♿ Checking vulnerability factors...');
-                  console.log('❌ No disability declared');
-                  console.log('❌ No special measures needed');
-                  return "No vulnerability issues";
-                },
-                14: () => {
-                  console.log('📋 Creating documents list...');
-                  console.log('  1. Court order 03/09/2025');
-                  console.log('  2. Skeleton argument');
-                  console.log('  3. Grounds of appeal');
-                  console.log('  4. Witness statement');
-                  return "4 documents listed";
-                },
-                15: () => {
-                  console.log('✍️ Preparing statement of truth...');
-                  console.log('👤 Appellant: Roman House');
-                  console.log('📅 Date: ' + new Date().toLocaleDateString());
-                  return "Statement of truth prepared";
-                },
-                16: () => {
-                  console.log('🔍 Analyzing for void order...');
-                  console.log('⚠️  Checking jurisdiction...');
-                  console.log('⚠️  Checking natural justice...');
-                  console.log('✅ Potential void indicators found');
-                  return "Void order analysis complete";
-                },
-                17: () => {
-                  console.log('📦 Generating document bundle...');
-                  console.log('  📄 Creating PDF package...');
-                  console.log('  📄 Adding all attachments...');
-                  console.log('  ✅ Bundle complete');
-                  return "PDF bundle generated";
-                }
-              };
-              
-              // Run the specific agent's logging function
-              const agentMessage = agentLogs[step] ? agentLogs[step]() : "Processing...";
-              
-              if (chatDiv) {
-                // Clear previous agent message and show only current one
-                chatDiv.innerHTML = \`
-                  <div class="bg-orange-50 p-3 rounded-lg text-sm border-l-4 border-orange-500">
-                    <div class="font-bold text-orange-800">\${agentName}</div>
-                    <div class="text-gray-700 mt-1">\${agentMessage}</div>
-                  </div>
-                \`;
-              }
-              
-              // Complete processing after 4-10 seconds (more realistic for AI processing)
-              const processingTime = 4000 + Math.random() * 6000;
-              setTimeout(() => {
-                const sectionDuration = Math.floor((Date.now() - sectionTimers[step]) / 1000);
-                
-                // Update status to completed
-                if (statusElement) {
-                  statusElement.innerHTML = \`
-                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-900">
-                      <span class="text-blue-700 mr-1">✓</span>
-                      Completed
-                    </span>
-                  \`;
-                }
-                
-                // Update duration
-                const timeElement = document.getElementById(\`time-\${step}\`);
-                if (timeElement) {
-                  timeElement.textContent = \`\${sectionDuration}s\`;
-                  timeElement.className = 'text-blue-900 text-xs font-medium text-right';
-                }
-                
-                // Add completion message from agent
-                const chatDiv = document.getElementById('chat');
-                if (chatDiv && step <= 14) { // Only for actual N161 sections
-                  const completionDiv = document.createElement('div');
-                  completionDiv.className = 'bg-blue-50 p-2 rounded-lg text-sm ml-8';
-                  completionDiv.innerHTML = \`✓ Section \${step} completed in \${sectionDuration}s\`;
-                  chatDiv.appendChild(completionDiv);
-                  chatDiv.scrollTop = chatDiv.scrollHeight;
-                }
-                
-                // Check if all sections completed
-                completedCount++;
-                if (completedCount === sections.length) {
-                  // Show completion message with form URL
-                  const completionDiv = document.getElementById('completion-message');
-                  const downloadLink = document.getElementById('form-download-link');
-                  if (completionDiv && downloadLink) {
-                    // Generate a mock URL for the completed form
-                    currentN161Url = \`/api/forms/n161/Roman_House_B00CF619_\${new Date().toISOString().split('T')[0]}.pdf\`;
-                    downloadLink.href = currentN161Url;
-                    completionDiv.classList.remove('hidden');
-                    
-                    // Add completion message to chat
-                    const chatDiv = document.getElementById('chat');
-                    if (chatDiv) {
-                      const completionMsg = document.createElement('div');
-                      completionMsg.className = 'bg-green-50 p-3 rounded-lg text-sm border-l-4 border-green-500 font-semibold';
-                      completionMsg.innerHTML = \`
-                        <div class="text-green-800">✅ N161 Appeal Form Complete!</div>
-                        <div class="text-gray-600 text-xs mt-1">Use the buttons above to preview or download your form.</div>
-                      \`;
-                      chatDiv.appendChild(completionMsg);
-                    }
-                  }
-                }
-              }, processingTime);
-              
-            }, index * 2000); // Start each section 2s apart (more realistic)
-          });
-          }, 2000); // End of setTimeout for starting processing
+          // The real orchestrator API call above will handle all UI updates via streaming
         }
         
         document.getElementById('chat-form').addEventListener('submit', async (e) => {
@@ -1521,9 +1321,113 @@ app.get('/', (c) => {
   `);
 });
 
-app.route('/api/orders', ordersRoutes);
-app.route('/api/chat', chatRoutes);
-app.route('/api/agents', agentRoutes);
-app.route('/api/appeal-simple', appealSimpleRoutes);
+// Orders search endpoint
+app.get('/api/orders/search', async (c) => {
+  const handler = createOrderSearchHandler(c.env);
+  return handler(c.req.raw);
+});
+
+// Extract parties from order endpoint
+app.post('/api/orders/extract-parties', async (c) => {
+  try {
+    const { orderKey } = await c.req.json();
+    
+    // For now, return mock party data
+    // TODO: Implement real party extraction from PDF
+    const response = {
+      success: true,
+      parties: [
+        { id: '1', name: 'Ms Roslyn Scott', role: 'appellant' },
+        { id: '2', name: 'MobiCycle OU', role: 'appellant' },
+        { id: '3', name: 'Mr Yiqun Liu', role: 'respondent' },
+        { id: '4', name: 'HMCTS (CCCL - Business & Property Work List)', role: 'court' }
+      ],
+      contactDetails: {
+        '1': {
+          name: 'Ms Roslyn Scott',
+          address: 'Apartment 13, Roman House, Wood Street, London EC2Y 5AG',
+          email: 'roslyn.scott@romanhouse.org',
+          phone: '+44 20 1234 5678'
+        },
+        '2': {
+          name: 'MobiCycle OU', 
+          address: 'Digital Business Center, Estonia',
+          email: 'legal@mobicycle.com',
+          phone: '+372 123 4567'
+        },
+        '3': {
+          name: 'Mr Yiqun Liu',
+          address: 'Address to be provided',
+          email: 'yiqun.liu@example.com',
+          phone: '+44 20 8765 4321'
+        },
+        '4': {
+          name: 'HMCTS (CCCL - Business & Property Work List)',
+          address: 'County Court at Central London, Thomas More Building, Royal Courts of Justice, Strand, London WC2A 2LL',
+          email: 'centralcountycourt@justice.gov.uk',
+          phone: '+44 20 7947 6000'
+        }
+      },
+      caseDetails: {
+        caseNumber: orderKey.includes('K10CL521') ? 'K10CL521' : 'AC-2025-LON-002606',
+        judge: orderKey.includes('Gerald') ? 'HHJ Gerald' : 'Judge Kinnier',
+        orderDate: new Date().toISOString().split('T')[0],
+        court: 'County Court at Central London'
+      }
+    };
+
+    return c.json(response);
+  } catch (error: any) {
+    return c.json({ 
+      success: false,
+      error: error.message 
+    }, 500);
+  }
+});
+
+// SSE endpoint for N161 form generation with real-time updates
+app.post('/api/n161/generate', async (c) => {
+  try {
+    const { orderKey } = await c.req.json();
+    
+    // Set up SSE response
+    const stream = new TransformStream();
+    const writer = stream.writable.getWriter();
+    const encoder = new TextEncoder();
+    
+    // Send SSE headers
+    const response = new Response(stream.readable, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
+    
+    // Run orchestrator with SSE updates
+    (async () => {
+      try {
+        const orchestrator = new N161Orchestrator(c.env, (msg) => {
+          // Send each update to frontend via SSE
+          console.log(`[Orchestrator] ${msg}`);
+          writer.write(encoder.encode(`data: ${JSON.stringify({ type: 'update', message: msg })}\n\n`));
+        });
+        
+        const result = await orchestrator.executeFullProcess(orderKey);
+        
+        // Send completion event
+        writer.write(encoder.encode(`data: ${JSON.stringify({ type: 'complete', result })}\n\n`));
+      } catch (error: any) {
+        writer.write(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`));
+      } finally {
+        writer.close();
+      }
+    })();
+    
+    return response;
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
 
 export default app;

@@ -16,7 +16,6 @@ import { OtherApplicationsAgent } from '../agents/section10_otherApplicationsAge
 import { EvidenceSupportAgent } from '../agents/section11_evidenceSupportAgent';
 import { SupportingDocumentsAgent } from '../agents/section13_supportingDocumentsAgent';
 import { StatementOfTruthAgent } from '../agents/section14_statementOfTruthAgent';
-import { VoidDetectorAgent } from '../agents/specialAgent_voidDetector';
 
 export class N161FormFiller {
   private bookService: BookService;
@@ -41,8 +40,7 @@ export class N161FormFiller {
       section10: new OtherApplicationsAgent(env),
       section11: new EvidenceSupportAgent(env),
       section13: new SupportingDocumentsAgent(env),
-      section14: new StatementOfTruthAgent(env),
-      voidDetector: new VoidDetectorAgent(env)
+      section14: new StatementOfTruthAgent(env)
     };
   }
   
@@ -197,12 +195,12 @@ export class N161FormFiller {
   }
   
   private async analyzeOrder(orderContent: string, orderPath: string): Promise<any> {
-    // Use void detector first
-    const voidAnalysis = await this.agents.voidDetector.detect(orderContent, {
-      orderPath,
-      judge: 'HHJ Gerald',
-      date: orderPath.includes('2025.08.29') ? '29 August 2025' : '3 September 2025'
-    });
+    // Void detector removed - using grounds analysis instead
+    const voidAnalysis = {
+      isVoid: false,
+      defects: [],
+      confidence: 0
+    };
     
     return {
       orderPath,

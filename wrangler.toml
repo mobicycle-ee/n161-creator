@@ -1,6 +1,7 @@
 name = "n161-creator"
 main = "src/index.ts"
 compatibility_date = "2025-09-23"
+compatibility_flags = ["nodejs_compat"]
 
 # wrangler.toml (wrangler v3.88.0^)
 [observability.logs]
@@ -50,7 +51,9 @@ id = "1c6c3a4156494b01a6f509b83dec4a50"
 
 [[r2_buckets]]
 binding = "ORDERS"
-bucket_name = "legal-housing-court-orders"
+bucket_name = "court-orders-by-year"
+jurisdiction = "eu"
+remote = true
 
 [vars]
 CLOUDFLARE_ACCESS_ENABLED = "true"

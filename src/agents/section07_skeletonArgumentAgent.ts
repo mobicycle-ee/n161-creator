@@ -120,8 +120,8 @@ export class SkeletonArgumentAgent {
         number: i + 1,
         title: ground.title,
         summary: ground.details?.[0] || ground.title,
-        legalBasis: [],
-        facts: [],
+        legalBasis: [] as string[],
+        facts: [] as string[],
         authorities: ground.citations || []
       };
       

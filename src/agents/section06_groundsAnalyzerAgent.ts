@@ -45,11 +45,11 @@ export class GroundsAnalyzerAgent {
   
   private async extractOrderDefects(orderContent: string): Promise<any> {
     const defects = {
-      procedural: [],
-      jurisdictional: [],
-      statutory: [],
-      constitutional: [],
-      international: []
+      procedural: [] as any[],
+      jurisdictional: [] as any[],
+      statutory: [] as any[],
+      constitutional: [] as any[],
+      international: [] as any[]
     };
     
     // Check for missing judge name (CPR 40.2)
@@ -326,8 +326,8 @@ export class GroundsAnalyzerAgent {
         if (currentGround) grounds.push(currentGround);
         currentGround = {
           title: line.replace(/^\d+\.\s*/, ''),
-          details: [],
-          citations: [],
+          details: [] as string[],
+          citations: [] as string[],
           likelihood: 'medium'
         };
       } else if (currentGround) {

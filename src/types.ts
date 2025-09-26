@@ -9,6 +9,7 @@ export interface Env {
   BOOK_3_DOMESTIC: D1Database;
   BOOK_4_VOID: D1Database;
   BOOK_5_WHISTLEBLOWERS: D1Database;
+  VOID_TRACKER_DB?: D1Database;
 }
 
 export interface Order {

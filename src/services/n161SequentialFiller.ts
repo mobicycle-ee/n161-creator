@@ -16,7 +16,6 @@ import { OtherApplicationsAgent } from '../agents/section10_otherApplicationsAge
 import { EvidenceSupportAgent } from '../agents/section11_evidenceSupportAgent';
 import { SupportingDocumentsAgent } from '../agents/section13_supportingDocumentsAgent';
 import { StatementOfTruthAgent } from '../agents/section14_statementOfTruthAgent';
-import { VoidDetectorAgent } from '../agents/specialAgent_voidDetector';
 
 export class N161SequentialFiller {
   private workingDirectory = '/Users/mobicycle/Library/Mobile Documents/com~apple~CloudDocs/0._Legal/Roman_House/tech/n161_creator/working';
@@ -99,7 +98,6 @@ export class N161SequentialFiller {
   
   private async analyzeOrders(orderPaths: string[]): Promise<void> {
     // Read and analyze orders to extract key information
-    const voidDetector = new VoidDetectorAgent(this.env);
     
     for (const orderPath of orderPaths) {
       console.log(`  Analyzing: ${orderPath}`);
@@ -107,12 +105,12 @@ export class N161SequentialFiller {
       // Read order (in reality would use Read tool)
       const orderContent = `Order from ${orderPath}`;
       
-      // Detect void issues
-      const voidAnalysis = await voidDetector.detect(orderContent, {
-        orderPath,
-        judge: 'HHJ Gerald',
-        orderDate: orderPath.includes('29') ? '29 August 2025' : '3 September 2025'
-      });
+      // Void detector removed - using grounds analysis instead
+      const voidAnalysis = {
+        isVoid: false,
+        defects: [],
+        confidence: 0
+      };
       
       // Store analysis
       this.caseData.orders = this.caseData.orders || [];
@@ -151,17 +149,19 @@ export class N161SequentialFiller {
     // 2. Previous sections' data
     // 3. Order analysis
     
+    // Create a dummy sendUpdate function for agents that expect it
+    const sendUpdate = (msg: string) => {
+      console.log(`[Section ${sectionNumber}] ${msg}`);
+    };
+    
     let sectionData = {};
     
     switch (sectionNumber) {
       case 1: // Case Details
-        sectionData = await agent.populateSection1({
-          caseNumber: this.caseData.caseNumber,
-          courtName: this.caseData.court,
-          appellantName: this.caseData.appellants[0],
-          appellantAddress: 'Apartment 13, Roman House, Wood Street, London EC2Y 5AG',
-          respondentName: this.caseData.respondent
-        });
+        sectionData = await agent.populateSection1(
+          this.caseData.orders?.[0]?.path || 'test-order',
+          sendUpdate
+        );
         break;
         
       case 2: // Appeal Details

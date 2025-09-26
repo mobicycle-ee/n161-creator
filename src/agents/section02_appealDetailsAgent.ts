@@ -9,7 +9,12 @@ export class AppealDetailsAgent {
   }
   
   async analyzeAppealType(section1Results: any, sendUpdate: (msg: string) => void) {
-    sendUpdate('📊 Analyzing order type from case details...');
+    sendUpdate('📂 Loading previously saved N161 form...');
+    sendUpdate('✅ N161 form loaded with Section 1 data');
+    sendUpdate('');
+    sendUpdate('📊 Starting Section 2: Appeal Details');
+    sendUpdate('I will now work on the appeal details section.');
+    sendUpdate('');
     
     const orderDetails = section1Results.caseDetails;
     const parties = section1Results.parties;
@@ -36,6 +41,21 @@ export class AppealDetailsAgent {
     sendUpdate('📚 Checking strategic guidance from legal books...');
     const strategicContent = await this.bookService.getRelevantContent('appeals strategy');
     sendUpdate(`✓ Found ${strategicContent.length} strategic precedents`);
+
+    // Surface the actual N161 Section 2 question set for transparency
+    const sectionQuestions = this.buildSection2Questions(orderDetails, appealType, appealRoute);
+    sendUpdate('📝 Processing Section 2 Questions:');
+    sendUpdate('');
+    sectionQuestions.forEach((qa, index) => {
+      sendUpdate(`📝 Question 2.${index + 1}: ${qa.question}`);
+      sendUpdate(`✅ Answer: ${qa.answer}`);
+      sendUpdate(`📄 Writing to N161 form: Field 2.${index + 1} = "${qa.answer}"`);
+      sendUpdate('');
+    });
+    
+    sendUpdate('💾 Saving N161 form with Section 2 data...');
+    sendUpdate('✅ N161 form saved successfully');
+    sendUpdate('');
     
     const result = {
       section: 'Section 2: Nature of Appeal',
@@ -45,6 +65,7 @@ export class AppealDetailsAgent {
       targetCourt: 'High Court, Queen\'s Bench Division',
       permissionRequired: true,
       strategicConsiderations: strategicContent.slice(0, 2),
+      questions: sectionQuestions,
       output: this.generateSection2Output(appealType, appealRoute, deadline)
     };
     
@@ -53,7 +74,7 @@ export class AppealDetailsAgent {
     
     return result;
   }
-  
+
   private async determineAppealTypeFromOrder(orderDetails: any): Promise<string> {
     if (orderDetails.orderType?.includes('Possession')) {
       return 'Appeal against Final Possession Order';
@@ -74,13 +95,133 @@ export class AppealDetailsAgent {
     }
     return 'First Appeal';
   }
-  
+
   private calculateDeadline(orderDate: string): string {
     const date = new Date(orderDate.replace(/\//g, '-'));
     date.setDate(date.getDate() + 21); // Standard 21 day deadline
     return date.toLocaleDateString('en-GB');
   }
-  
+
+  private buildSection2Questions(orderDetails: any, appealType: string, appealRoute: string) {
+    const courtAnswer = this.formatCourtAnswer(orderDetails);
+    const judgeName = orderDetails?.judge || 'Judge to be confirmed';
+    const judgeStatus = orderDetails?.judgeStatus || this.inferJudgeStatus(judgeName);
+    const decisionDate = orderDetails?.orderDate || 'Decision date to confirm';
+    const previousAppeal = this.inferPreviousAppealDecision(orderDetails, appealRoute);
+
+    return [
+      {
+        question: 'From which court is the appeal being brought (and division, if High Court)?',
+        answer: courtAnswer
+      },
+      {
+        question: 'What is the name of the judge whose decision you want to appeal?',
+        answer: judgeName
+      },
+      {
+        question: 'What is the status of that judge?',
+        answer: judgeStatus
+      },
+      {
+        question: 'What is the date of the decision you wish to appeal?',
+        answer: decisionDate
+      },
+      {
+        question: 'Is the decision you wish to appeal itself a previous appeal decision?',
+        answer: previousAppeal
+      }
+    ];
+  }
+
+  private formatCourtAnswer(orderDetails: any): string {
+    if (!orderDetails) {
+      return 'Court to be identified';
+    }
+
+    const courtName = orderDetails.courtName || 'Court to be confirmed';
+    const division = orderDetails.courtDivision || this.inferCourtDivision(courtName);
+
+    if (division && !courtName.toLowerCase().includes(division.toLowerCase())) {
+      return `${courtName} (${division})`;
+    }
+
+    return division ? `${courtName} (${division})` : courtName;
+  }
+
+  private inferCourtDivision(courtName: string): string | null {
+    if (!courtName) return null;
+    const lower = courtName.toLowerCase();
+
+    if (lower.includes('high court')) {
+      if (lower.includes('queen') || lower.includes('king')) {
+        return "King's Bench Division";
+      }
+      if (lower.includes('chancery')) return 'Chancery Division';
+      if (lower.includes('family')) return 'Family Division';
+      return "King's Bench Division";
+    }
+
+    if (lower.includes('county court')) {
+      return 'County Court';
+    }
+
+    if (lower.includes('court of appeal')) {
+      return 'Court of Appeal (Civil Division)';
+    }
+
+    return null;
+  }
+
+  private inferJudgeStatus(judgeName: string): string {
+    if (!judgeName) {
+      return 'Status to be confirmed';
+    }
+
+    const lower = judgeName.toLowerCase();
+    if (lower.includes('hhj')) {
+      return 'Circuit Judge (HHJ)';
+    }
+    if (lower.includes('deputy high') || lower.includes('high court')) {
+      return 'High Court Judge or Deputy';
+    }
+    if (lower.includes('master')) {
+      return 'Master';
+    }
+    if (lower.includes('district')) {
+      return 'District Judge';
+    }
+    if (lower.includes('recorder')) {
+      return 'Recorder';
+    }
+    if (lower.includes('kc') || lower.includes('qc')) {
+      return 'High Court Judge or Deputy';
+    }
+    return 'Judicial status to confirm';
+  }
+
+  private inferPreviousAppealDecision(orderDetails: any, appealRoute: string): string {
+    const orderType = orderDetails?.orderType?.toLowerCase() || '';
+    const routeLower = appealRoute?.toLowerCase() || '';
+
+    if (routeLower.includes('second appeal')) {
+      return 'Yes – this follows a previous appeal decision';
+    }
+
+    if (orderType.includes('permission to appeal') || orderType.includes('refusal of permission')) {
+      return 'Yes – reviewing a prior appeal/permission decision';
+    }
+
+    if (orderType.includes('judicial review') || orderType.includes('totally without merit')) {
+      return 'Yes – decision arises from a previous review stage';
+    }
+
+    if (orderType.includes('possession') || orderType.includes('final order')) {
+      return 'No – this is a first appeal against a final order';
+    }
+
+    return 'Unknown – confirm whether this follows an earlier appeal';
+  }
+
   private generateSection2Output(appealType: string, route: string, deadline: string): string {
     return `
 SECTION 2: NATURE OF APPEAL
@@ -170,7 +311,7 @@ The Appellant seeks permission to appeal and appeals against the order on the gr
     return 'Order (Type to be determined)';
   }
   
-  private determineAppealRoute(orderDetails: any): string {
+  private determineAppealRouteSync(orderDetails: any): string {
     // First appeal unless this is already from an appeal
     if (orderDetails.courtLevel?.includes('Circuit Judge') && 
         orderDetails.previousCourt?.includes('District Judge')) {

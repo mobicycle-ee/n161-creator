@@ -195,8 +195,8 @@ export class OrderDetailsAgent {
   private checkCPR40Compliance(details: any): any {
     const compliance = {
       compliant: true,
-      missing: [],
-      present: []
+      missing: [] as string[],
+      present: [] as string[]
     };
     
     // Check requirements

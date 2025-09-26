@@ -15,7 +15,7 @@ export class PermissionAgent {
     // Get Book 3 content on appeal procedures
     const appealContent = await this.bookService.getRelevantContent('appeals');
     
-    // Prepare permission arguments if needed
+    // Prepare permission permissionArgs if needed
     let permissionArguments = null;
     if (permissionAnalysis.required) {
       permissionArguments = await this.generatePermissionArguments(orderDetails, grounds);
@@ -38,7 +38,7 @@ export class PermissionAgent {
       - Whether permission required
       - Which test applies
       - Strength of permission case (percentage)
-      - Key arguments for permission
+      - Key permissionArgs for permission
     `;
     
     const analysis = await this.env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
@@ -53,7 +53,7 @@ export class PermissionAgent {
       permissionRequired: permissionAnalysis.required,
       reason: permissionAnalysis.reason,
       test: parsed.test || this.determineTest(orderDetails),
-      arguments: permissionArguments,
+      permissionArgs: permissionArguments,
       prospects: parsed.prospects || this.assessProspects(grounds),
       compellingReasons: this.identifyCompellingReasons(orderDetails, grounds),
       bookReferences: appealContent.slice(0, 2),
@@ -66,7 +66,7 @@ export class PermissionAgent {
     const analysis = {
       required: true,
       reason: '',
-      exceptions: []
+      exceptions: [] as string[]
     };
     
     // Most appeals require permission
@@ -94,17 +94,17 @@ export class PermissionAgent {
   }
   
   private async generatePermissionArguments(orderDetails: any, grounds: any[]) {
-    const arguments = {
-      realProspect: [],
-      compellingReason: [],
-      publicImportance: [],
-      proceduralIrregularity: []
+    const permissionArgs = {
+      realProspect: [] as any[],
+      compellingReason: [] as any[],
+      publicImportance: [] as any[],
+      proceduralIrregularity: [] as any[]
     };
     
-    // Real prospect arguments
+    // Real prospect permissionArgs
     for (const ground of grounds) {
       if (ground.likelihood === 'high') {
-        arguments.realProspect.push({
+        permissionArgs.realProspect.push({
           ground: ground.title,
           reason: `Strong legal basis: ${ground.details[0] || ground.title}`,
           authority: ground.citations[0] || ''
@@ -112,13 +112,13 @@ export class PermissionAgent {
       }
     }
     
-    // Check for void order arguments
+    // Check for void order permissionArgs
     const voidIndicators = grounds.filter(g => 
       g.title.toLowerCase().includes('void') || 
       g.title.toLowerCase().includes('jurisdiction'));
     
     if (voidIndicators.length > 0) {
-      arguments.compellingReason.push({
+      permissionArgs.compellingReason.push({
         reason: 'Order potentially void ab initio',
         detail: 'Void orders are nullities requiring immediate correction',
         authority: 'Anisminic v Foreign Compensation Commission [1969]'
@@ -132,7 +132,7 @@ export class PermissionAgent {
       g.title.toLowerCase().includes('human rights'));
     
     if (humanRights.length > 0) {
-      arguments.compellingReason.push({
+      permissionArgs.compellingReason.push({
         reason: 'Fundamental human rights violation',
         detail: 'Court obliged to remedy Convention breaches',
         authority: 'Human Rights Act 1998, s.6'
@@ -141,7 +141,7 @@ export class PermissionAgent {
     
     // Public importance
     if (orderDetails.affectsOthers || orderDetails.precedentValue) {
-      arguments.publicImportance.push({
+      permissionArgs.publicImportance.push({
         reason: 'Issue of general public importance',
         detail: 'Decision affects wider class of persons',
         impact: orderDetails.publicImpact || 'Significant precedent value'
@@ -150,14 +150,14 @@ export class PermissionAgent {
     
     // Procedural irregularities
     if (orderDetails.proceduralDefects) {
-      arguments.proceduralIrregularity = orderDetails.proceduralDefects.map((defect: any) => ({
+      permissionArgs.proceduralIrregularity = orderDetails.proceduralDefects.map((defect: any) => ({
         defect: defect,
         impact: 'Denied fair hearing',
         remedy: 'Appeal necessary to cure defect'
       }));
     }
     
-    return arguments;
+    return permissionArgs;
   }
   
   private determineTest(orderDetails: any): string {
@@ -277,7 +277,7 @@ export class PermissionAgent {
     }
     
     if (parsed.prospects?.percentage < 40) {
-      warnings.push('Weak prospects - strengthen arguments or reconsider appeal');
+      warnings.push('Weak prospects - strengthen permissionArgs or reconsider appeal');
     }
     
     if (!orderDetails.grounds || orderDetails.grounds.length === 0) {

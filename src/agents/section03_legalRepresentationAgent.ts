@@ -22,8 +22,8 @@ export class LegalRepresentationAgent {
       details: isLitigantInPerson ? 
         this.getLiPDetails(userDetails) : 
         this.getLegalRepDetails(userDetails),
-      specialConsiderations: [],
-      supportNeeds: []
+      specialConsiderations: [] as string[],
+      supportNeeds: [] as string[]
     };
     
     // Check for vulnerability factors

@@ -91,7 +91,7 @@ export class EvidenceSupportAgent {
       
       if (ground.title.toLowerCase().includes('bias')) {
         map[ground.title].required.push(
-          'Judge's comments transcript',
+          'Judge\'s comments transcript',
           'Previous rulings showing pattern',
           'Complaint correspondence'
         );
@@ -229,9 +229,9 @@ export class EvidenceSupportAgent {
   
   private structureEvidencePlan(aiResponse: string, evidenceMap: any, gaps: any[]): any {
     const plan = {
-      immediate: [],
-      shortTerm: [],
-      contingent: [],
+      immediate: [] as any[],
+      shortTerm: [] as any[],
+      contingent: [] as any[],
       strategy: ''
     };
     
